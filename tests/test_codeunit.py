@@ -98,6 +98,6 @@ class CodeUnitTest(CoverageTest):
 
         cu = code_unit_factory([egg1, egg1.egg1], FileLocator())
         self.assertEqual(cu[0].source(), "")
-        self.assertEqual(cu[1].source().split("\n")[0],
+        self.assertEqual(cu[1].source().replace("\r", "").split("\n")[0],
                 "# My egg file!"
                 )
