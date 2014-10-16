@@ -47,6 +47,7 @@ class Collector(object):
 
     def __init__(self,
         should_trace, check_include, timid, branch, warn, coroutine,
+        record_tests=True
     ):
         """Create a collector.
 
@@ -70,12 +71,14 @@ class Collector(object):
 
         TODO: `coroutine`
 
+        :keyword record_tests: if True we will record which tests called each line.
         """
         self.should_trace = should_trace
         self.check_include = check_include
         self.warn = warn
         self.branch = branch
         self.threading = None
+        self.record_tests = record_tests or False
         self.coroutine = coroutine
 
         self.coroutine_id_func = None
@@ -129,6 +132,10 @@ class Collector(object):
         # or mapping filenames to dicts with linenumber pairs as keys.
         self.data = {}
 
+        # Similar to self.data, except the values of the dicts are sets
+        # of test identifiers (filename:line_no:function_name)
+        self.callers_data = {}
+
         self.plugin_data = {}
 
         # A cache of the results from should_trace, the decision about whether
@@ -143,10 +150,12 @@ class Collector(object):
         """Start a new Tracer object, and store it in self.tracers."""
         tracer = self._trace_class()
         tracer.data = self.data
+        tracer.callers_data = self.callers_data
         tracer.arcs = self.branch
         tracer.should_trace = self.should_trace
         tracer.should_trace_cache = self.should_trace_cache
         tracer.warn = self.warn
+        tracer.should_record_tests = self.record_tests
 
         if hasattr(tracer, 'coroutine_id_func'):
             tracer.coroutine_id_func = self.coroutine_id_func
@@ -259,7 +268,10 @@ class Collector(object):
 
         Data is { filename: { lineno: None, ...}, ...}
 
+        TODO: need similar for callers_data
         """
+        from pprint import pformat
+        print("%s" % (pformat(self.callers_data),)) # XXX TODO
         if self.branch:
             # If we were measuring branches, then we have to re-build the dict
             # to show line data.
