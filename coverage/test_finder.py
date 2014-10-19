@@ -8,6 +8,7 @@ Code to find test callers in the stack when tracing statements.
 
 import os
 import inspect
+from collections import namedtuple
 from unittest import TestCase, FunctionTestCase
 from pprint import pformat
 
@@ -19,31 +20,26 @@ def log(msg, level=1):
         print(msg)
 
 
+TestIdentifier = namedtuple("TestIdentifier", ['filename', 'line_no', 'function_name'])
+
+
 class TestFinder(object):
     """
     A class used by the tracer (pytracer.py only currently) to identify
     calling test functions when tracing statements by looking at the stack.
     """
-    def __init__(self):
+    def __init__(self, test_ids):
         # TODO: build this dynamically by trying to import
         # various suites and obtain their classes...
 
         self.test_case_classes = tuple([TestCase, FunctionTestCase])
+
+        # Used to generate short integer IDs for tests.
+        self._current_test_num = 0
+
+        # Map the full test ID to a short integer ID.
+        self.test_ids = test_ids
         return
-
-    # noinspection PyUnusedLocal
-    @staticmethod
-    def is_test_framework_method(frame, frame_info):
-        """
-        :return: True if the function at this frame appears
-        to live inside a unit test framework.
-
-        This need some work to be more flexible with different frameworks...
-        """
-        fname = frame_info.filename
-        if fname.find(os.sep + "unittest" + os.sep) != -1:
-            return True
-        return False
 
     def find_tests_in_frame(self, trace_frame):
         """Identify anything that looks like a 'test' in the call stack."""
@@ -76,8 +72,9 @@ class TestFinder(object):
             is_test_method = self._is_test_method(frame, f_info)
 
             if is_test_method:
-                test_method_label = "%s:%s:%s" % (f_info.filename, f_info.lineno, obj_name)
-                test_methods.add(test_method_label)
+                # test_method_label = "%s:%s:%s" % (f_info.filename, f_info.lineno, obj_name)
+                test_id = self.get_test_id(f_info.filename, f_info.lineno, obj_name)
+                test_methods.add(test_id)
                 # print("%s - %s %r (%s) %s" % (i, obj_name, this_self, test_method_label, m_info))
 
         which_tests = TestFinderResult(trace_frame_id, test_methods)
@@ -110,6 +107,46 @@ class TestFinder(object):
 
         return False
 
+    # noinspection PyUnusedLocal
+    @staticmethod
+    def is_test_framework_method(frame, frame_info):
+        """
+        :return: True if the function at this frame appears
+        to live inside a unit test framework.
+
+        This need some work to be more flexible with different frameworks...
+        """
+        fname = frame_info.filename
+        if fname.find(os.sep + "unittest" + os.sep) != -1:
+            return True
+        return False
+
+    def get_test_id(self, source_file, line_no, func_name):
+        #full_id = "%s:%s:%s" % (source_file, line_no, func_name)
+        full_id = TestIdentifier(
+            filename=source_file,
+            line_no=line_no,
+            function_name=func_name,
+        )
+        short_id = self.test_ids.get(full_id, None)
+        if short_id is not None:
+            return short_id
+        self._current_test_num += 1
+        self.test_ids[full_id] = self._current_test_num
+        return self._current_test_num
+
+    def get_test_info_for_id(self, short_id):
+        """
+        Get a description of a calling test using the short ID.
+        If the short_id is unknown we raise ValueError.
+
+        :return: a named tuple describing a previously encountered test, given by the short ID.
+        """
+        for key, val in self.test_ids.iteritems():
+            if val == short_id:
+                return key
+        raise ValueError("Test ID %s not found." % (short_id,))
+
 
 class TestFinderResult(object):
     """
@@ -120,9 +157,8 @@ class TestFinderResult(object):
 
     test_methods is a set of identifiers for identified tests.
 
-    Currently both identifiers follow the format:
-
-    filename:line_no:function_name
+    Those are implemented as simple integers, which can be converted to a full
+    ID with TestFinder.get_test_info_for_id(short_id)
     """
 
     def __init__(self, line_id, test_methods=None):

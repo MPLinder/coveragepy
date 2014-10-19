@@ -133,8 +133,11 @@ class Collector(object):
         self.data = {}
 
         # Similar to self.data, except the values of the dicts are sets
-        # of test identifiers (filename:line_no:function_name)
+        # of short test IDs (integers)
         self.callers_data = {}
+
+        # Maps test_finder.TestIdentifier named tuples to the short integer test IDs
+        self.test_ids = {}
 
         self.plugin_data = {}
 
@@ -151,6 +154,7 @@ class Collector(object):
         tracer = self._trace_class()
         tracer.data = self.data
         tracer.callers_data = self.callers_data
+        tracer.test_ids = self.test_ids
         tracer.arcs = self.branch
         tracer.should_trace = self.should_trace
         tracer.should_trace_cache = self.should_trace_cache
@@ -272,6 +276,7 @@ class Collector(object):
         """
         from pprint import pformat
         print("%s" % (pformat(self.callers_data),)) # XXX TODO
+        print("Tests: %s" % (pformat(self.test_ids),))
         if self.branch:
             # If we were measuring branches, then we have to re-build the dict
             # to show line data.

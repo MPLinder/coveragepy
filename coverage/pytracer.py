@@ -29,6 +29,7 @@ class PyTracer(object):
         # Attributes set from the collector:
         self.data = None
         self.callers_data = None
+        self.test_ids = None
         self.arcs = False
         self.should_trace = None
         self.should_trace_cache = None
@@ -49,7 +50,7 @@ class PyTracer(object):
         self.thread = None
         self.stopped = False
 
-        self.test_finder = TestFinder()
+        self.test_finder = None
 
     def __repr__(self):
         return "<PyTracer at 0x{0:0x}: {1} lines in {2} files>".format(
@@ -199,6 +200,7 @@ class PyTracer(object):
         Return a Python function suitable for use with sys.settrace().
 
         """
+        self.test_finder = TestFinder(self.test_ids)
         if self.threading:
             self.thread = self.threading.currentThread()
         sys.settrace(self._trace)
