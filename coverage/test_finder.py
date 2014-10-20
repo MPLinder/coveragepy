@@ -11,7 +11,12 @@ import inspect
 from collections import namedtuple
 from unittest import TestCase, FunctionTestCase
 from pprint import pformat
-from nose.tools import nottest
+
+try:
+    from nose.tools import nottest
+except ImportError, e:
+    def nottest(func):
+        return func
 
 from coverage.backward import iitems
 
@@ -82,6 +87,7 @@ class TestFinder(object):
         which_tests = TestFinderResult(trace_frame_id, test_methods)
         return which_tests
 
+    @nottest
     def _is_test_method(self, frame, frame_info):
         obj_name = frame_info.function
 
@@ -111,6 +117,7 @@ class TestFinder(object):
 
     # noinspection PyUnusedLocal
     @staticmethod
+    @nottest
     def _is_test_framework_method(frame, frame_info):
         """
         :return: True if the function at this frame appears
@@ -123,6 +130,7 @@ class TestFinder(object):
         return False
 
     @staticmethod
+    @nottest
     def _get_test_id(source_file, line_no, func_name):
         #full_id = "%s:%s:%s" % (source_file, line_no, func_name)
         full_id = TestIdentifier(
@@ -170,6 +178,7 @@ class TestFinderResult(object):
         self.test_methods = test_methods or set()
         self.line_id = line_id
 
+    @nottest
     def has_tests(self):
         if self.test_methods and len(self.test_methods):
             return True
