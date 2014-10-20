@@ -29,7 +29,6 @@ class PyTracer(object):
         # Attributes set from the collector:
         self.data = None
         self.callers_data = None
-        self.test_ids = None
         self.arcs = False
         self.should_trace = None
         self.should_trace_cache = None
@@ -50,7 +49,7 @@ class PyTracer(object):
         self.thread = None
         self.stopped = False
 
-        self.test_finder = None
+        self.test_finder = TestFinder()
 
     def __repr__(self):
         return "<PyTracer at 0x{0:0x}: {1} lines in {2} files>".format(
@@ -91,7 +90,6 @@ class PyTracer(object):
                 if self.arcs and self.cur_file_dict:
                     pair = (self.last_line, -self.last_exc_firstlineno)
                     self.cur_file_dict[pair] = None
-                # TODO: do I need similar as above for self.cur_file_callers_dict ?
                 self.plugin, self.cur_file_dict, self.cur_file_callers_dict, self.last_line = (
                     self.data_stack.pop()
                 )
@@ -200,7 +198,6 @@ class PyTracer(object):
         Return a Python function suitable for use with sys.settrace().
 
         """
-        self.test_finder = TestFinder()
         if self.threading:
             self.thread = self.threading.currentThread()
         sys.settrace(self._trace)

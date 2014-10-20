@@ -45,6 +45,12 @@ class TestFinder(object):
         # Used to generate short integer IDs for tests.
         self._current_test_num = 0
 
+        # Identify package names of common unit test frameworks
+        self._test_packages = [
+            os.sep + 'unittest' + os.sep,
+            os.sep + 'nose' + os.sep,
+        ]
+
         return
 
     @nottest
@@ -53,7 +59,10 @@ class TestFinder(object):
 
         test_methods = set()
 
-        trace_frame_info = inspect.getframeinfo(trace_frame)
+        try:
+            trace_frame_info = inspect.getframeinfo(trace_frame)
+        except:
+            return None
 
         # Is this the right concept to use to identify these?
         trace_frame_id = "%s:%s:%s" % (trace_frame_info.filename, trace_frame_info.lineno, trace_frame_info.function)
@@ -96,6 +105,8 @@ class TestFinder(object):
         if obj_name == 'test' or obj_name.find('test_') > -1:
             return True
 
+        # Need an exception handler for below?
+
         # Find the first argument to the function, if any,
         # to see if it looks like an instance of a test case class.
         this_self = None
@@ -104,7 +115,7 @@ class TestFinder(object):
             first_arg = arg_vals.args[0]
             this_self = arg_vals.locals[first_arg]
 
-        if this_self:
+        if this_self is not None:
 
             # Does this look like a method of a known test case class?
             if isinstance(this_self, self.test_case_classes):
@@ -116,17 +127,17 @@ class TestFinder(object):
         return False
 
     # noinspection PyUnusedLocal
-    @staticmethod
     @nottest
-    def _is_test_framework_method(frame, frame_info):
+    def _is_test_framework_method(self, frame, frame_info):
         """
         :return: True if the function at this frame appears
         to live inside a unit test framework.
 
         This need some work to be more flexible with different frameworks...
         """
-        if frame_info.filename.find(os.sep + "unittest" + os.sep) != -1:
-            return True
+        for package_name in self._test_packages:
+            if frame_info.filename.find(package_name) != -1:
+                return True
         return False
 
     @staticmethod
@@ -196,8 +207,8 @@ class TestFinderResult(object):
     def merge(self, other_result):
         """Merge another TestFinderResult that has the same line_id
         into this one, and return the modified instance."""
-        if self.line_id != other_result.line_id:
-            raise ValueError("Cannot merge results from different line_id's.")
+        # if self.line_id != other_result.line_id:
+        #     raise ValueError("Cannot merge results from different line_id's.\nID 1: %s\nID 2: %s\n" % (self.line_id, other_result.line_id))
         self.test_methods = self.test_methods.union(other_result.test_methods)
         return self
 
