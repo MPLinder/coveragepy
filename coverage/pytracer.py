@@ -33,7 +33,7 @@ class PyTracer(object):
         self.arcs = False
         self.should_trace = None
         self.should_trace_cache = None
-        self.should_record_tests = False
+        self.should_record_callers = False
         self.warn = None
         self.plugin_data = None
         # The threading module to use, if any.
@@ -154,7 +154,7 @@ class PyTracer(object):
                         print("line %s: %s-%s - %s" % (filename, lineno_from, lineno_to, self._format_frame(frame)))
 
                     which_tests = None
-                    if self.should_record_tests and self.cur_file_callers_dict is not None:
+                    if self.should_record_callers and self.cur_file_callers_dict is not None:
                         which_tests = self.test_finder.find_tests_in_frame(frame)
 
                     if self.arcs:
@@ -200,7 +200,7 @@ class PyTracer(object):
         Return a Python function suitable for use with sys.settrace().
 
         """
-        self.test_finder = TestFinder(self.test_ids)
+        self.test_finder = TestFinder()
         if self.threading:
             self.thread = self.threading.currentThread()
         sys.settrace(self._trace)

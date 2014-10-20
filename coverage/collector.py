@@ -46,8 +46,7 @@ class Collector(object):
     _collectors = []
 
     def __init__(self,
-        should_trace, check_include, timid, branch, warn, coroutine,
-        record_tests=True
+        should_trace, check_include, timid, branch, warn, coroutine, record_callers=False
     ):
         """Create a collector.
 
@@ -71,14 +70,14 @@ class Collector(object):
 
         TODO: `coroutine`
 
-        :keyword record_tests: if True we will record which tests called each line.
+        :keyword record_callers: if True we will record which tests called each line.
         """
         self.should_trace = should_trace
         self.check_include = check_include
         self.warn = warn
         self.branch = branch
         self.threading = None
-        self.record_tests = record_tests or False
+        self.record_callers = record_callers or False
         self.coroutine = coroutine
 
         self.coroutine_id_func = None
@@ -136,9 +135,6 @@ class Collector(object):
         # of short test IDs (integers)
         self.callers_data = {}
 
-        # Maps test_finder.TestIdentifier named tuples to the short integer test IDs
-        self.test_ids = {}
-
         self.plugin_data = {}
 
         # A cache of the results from should_trace, the decision about whether
@@ -154,12 +150,11 @@ class Collector(object):
         tracer = self._trace_class()
         tracer.data = self.data
         tracer.callers_data = self.callers_data
-        tracer.test_ids = self.test_ids
         tracer.arcs = self.branch
         tracer.should_trace = self.should_trace
         tracer.should_trace_cache = self.should_trace_cache
         tracer.warn = self.warn
-        tracer.should_record_tests = self.record_tests
+        tracer.should_record_callers = self.record_callers
 
         if hasattr(tracer, 'coroutine_id_func'):
             tracer.coroutine_id_func = self.coroutine_id_func
@@ -275,8 +270,8 @@ class Collector(object):
         TODO: need similar for callers_data
         """
         from pprint import pformat
-        print("%s" % (pformat(self.callers_data),)) # XXX TODO
-        print("Tests: %s" % (pformat(self.test_ids),))
+        if self.callers_data:
+            print("%s" % (pformat(self.callers_data),))  # XXX TODO
         if self.branch:
             # If we were measuring branches, then we have to re-build the dict
             # to show line data.
@@ -300,6 +295,9 @@ class Collector(object):
             return self.data
         else:
             return {}
+
+    def get_callers_data(self):
+        return self.callers_data
 
     def get_plugin_data(self):
         return self.plugin_data

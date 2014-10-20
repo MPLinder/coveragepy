@@ -12,6 +12,8 @@ from collections import namedtuple
 from unittest import TestCase, FunctionTestCase
 from pprint import pformat
 
+from coverage.backward import iitems
+
 VERBOSE_LEVEL = 1
 
 
@@ -28,7 +30,7 @@ class TestFinder(object):
     A class used by the tracer (pytracer.py only currently) to identify
     calling test functions when tracing statements by looking at the stack.
     """
-    def __init__(self, test_ids):
+    def __init__(self):
         # TODO: build this dynamically by trying to import
         # various suites and obtain their classes...
 
@@ -37,8 +39,6 @@ class TestFinder(object):
         # Used to generate short integer IDs for tests.
         self._current_test_num = 0
 
-        # Map the full test ID to a short integer ID.
-        self.test_ids = test_ids
         return
 
     def find_tests_in_frame(self, trace_frame):
@@ -73,7 +73,7 @@ class TestFinder(object):
 
             if is_test_method:
                 # test_method_label = "%s:%s:%s" % (f_info.filename, f_info.lineno, obj_name)
-                test_id = self.get_test_id(f_info.filename, f_info.lineno, obj_name)
+                test_id = self._get_test_id(f_info.filename, f_info.lineno, obj_name)
                 test_methods.add(test_id)
                 # print("%s - %s %r (%s) %s" % (i, obj_name, this_self, test_method_label, m_info))
 
@@ -102,50 +102,56 @@ class TestFinder(object):
             if isinstance(this_self, self.test_case_classes):
                 # If the function call looks like it originates
                 # in the unit test framework itself, do not include.
-                if not self.is_test_framework_method(frame, frame_info):
+                if not self._is_test_framework_method(frame, frame_info):
                     return True
 
         return False
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def is_test_framework_method(frame, frame_info):
+    def _is_test_framework_method(frame, frame_info):
         """
         :return: True if the function at this frame appears
         to live inside a unit test framework.
 
         This need some work to be more flexible with different frameworks...
         """
-        fname = frame_info.filename
-        if fname.find(os.sep + "unittest" + os.sep) != -1:
+        if frame_info.filename.find(os.sep + "unittest" + os.sep) != -1:
             return True
         return False
 
-    def get_test_id(self, source_file, line_no, func_name):
+    @staticmethod
+    def _get_test_id(source_file, line_no, func_name):
         #full_id = "%s:%s:%s" % (source_file, line_no, func_name)
         full_id = TestIdentifier(
             filename=source_file,
             line_no=line_no,
             function_name=func_name,
         )
-        short_id = self.test_ids.get(full_id, None)
-        if short_id is not None:
-            return short_id
-        self._current_test_num += 1
-        self.test_ids[full_id] = self._current_test_num
-        return self._current_test_num
+        return full_id
 
-    def get_test_info_for_id(self, short_id):
+    @staticmethod
+    def merge_callers_dicts(this_callers, other_callers):
         """
-        Get a description of a calling test using the short ID.
-        If the short_id is unknown we raise ValueError.
+        Merge two callers dicts used by collector/tracer to record test callers.
 
-        :return: a named tuple describing a previously encountered test, given by the short ID.
+        Each dict is assumed to follow the callers dict format documented in
+        data.CoverageData - but is for a single file, (i.e, is an inner value dict)
         """
-        for key, val in self.test_ids.iteritems():
-            if val == short_id:
-                return key
-        raise ValueError("Test ID %s not found." % (short_id,))
+
+        # Both data sets have this file, so merge them.
+        for line_or_arc, other_test_result in iitems(other_callers):
+
+            # If the other line/arc is not in this file, add it and move on.
+            this_test_result = this_callers.get(line_or_arc, None)
+            if this_test_result is None:
+                this_callers[line_or_arc] = other_test_result
+                continue
+
+            # This line/arc is present in both files; merge them.
+            this_test_result.merge(other_test_result)
+
+        return this_callers
 
 
 class TestFinderResult(object):
@@ -155,10 +161,7 @@ class TestFinderResult(object):
 
     line_id is an identifier for the LUT
 
-    test_methods is a set of identifiers for identified tests.
-
-    Those are implemented as simple integers, which can be converted to a full
-    ID with TestFinder.get_test_info_for_id(short_id)
+    test_methods is a set of TestIdentifiers for tests we found.
     """
 
     def __init__(self, line_id, test_methods=None):
@@ -210,5 +213,7 @@ class TestFinderResult(object):
             past_result = result
         if not past_result.has_tests():
             past_result = None
-        lines_dict[dict_key] = past_result
+        # Don't need to store None values
+        if past_result is not None:
+            lines_dict[dict_key] = past_result
         return past_result

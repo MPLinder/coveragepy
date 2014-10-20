@@ -19,6 +19,10 @@ class Opts(object):
         '', '--branch', action='store_true',
         help="Measure branch coverage in addition to statement coverage."
         )
+    callers = optparse.make_option(
+        '', '--callers', action='store_true',
+        help="Measure calling tests for each statement."
+        )
     coroutine = optparse.make_option(
         '', '--coroutine', action='store', metavar="LIB",
         help="Properly measure code using coroutines."
@@ -125,6 +129,7 @@ class CoverageOptionParser(optparse.OptionParser, object):
         self.set_defaults(
             actions=[],
             branch=None,
+            callers=None,
             coroutine=None,
             debug=None,
             directory=None,
@@ -320,6 +325,7 @@ CMDS = {
         [
             Opts.append,
             Opts.branch,
+            Opts.callers,
             Opts.coroutine,
             Opts.debug,
             Opts.pylib,
@@ -424,6 +430,7 @@ class CoverageScript(object):
             cover_pylib = options.pylib,
             timid = options.timid,
             branch = options.branch,
+            callers = options.callers,
             config_file = options.rcfile,
             source = source,
             omit = omit,

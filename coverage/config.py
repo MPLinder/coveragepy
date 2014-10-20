@@ -140,6 +140,7 @@ class CoverageConfig(object):
 
         # Defaults for [run]
         self.branch = False
+        self.callers = False
         self.coroutine = None
         self.cover_pylib = False
         self.data_file = ".coverage"
@@ -235,6 +236,7 @@ class CoverageConfig(object):
 
         # [run]
         ('branch', 'run:branch', 'boolean'),
+        ('callers', 'run:callers', 'boolean'),
         ('coroutine', 'run:coroutine'),
         ('cover_pylib', 'run:cover_pylib', 'boolean'),
         ('data_file', 'run:data_file'),

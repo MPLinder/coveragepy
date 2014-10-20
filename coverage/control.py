@@ -43,7 +43,7 @@ class Coverage(object):
 
     """
     def __init__(self, data_file=None, data_suffix=None, cover_pylib=None,
-                auto_data=False, timid=None, branch=None, config_file=True,
+                auto_data=False, timid=None, branch=None, callers=False, config_file=True,
                 source=None, omit=None, include=None, debug=None,
                 debug_file=None, coroutine=None, plugins=None):
         """
@@ -66,6 +66,9 @@ class Coverage(object):
 
         If `branch` is true, then branch coverage will be measured in addition
         to the usual statement coverage.
+
+        If `callers` is true, then we attempt to record calling tests for each
+        statement executed.
 
         `config_file` determines what config file to read.  If it is a string,
         it is the name of the config file to read.  If it is True, then a
@@ -126,7 +129,7 @@ class Coverage(object):
         # 4: from constructor arguments:
         self.config.from_args(
             data_file=data_file, cover_pylib=cover_pylib, timid=timid,
-            branch=branch, parallel=bool_or_none(data_suffix),
+            branch=branch, callers=callers, parallel=bool_or_none(data_suffix),
             source=source, omit=omit, include=include, debug=debug,
             coroutine=coroutine, plugins=plugins,
             )
@@ -169,6 +172,7 @@ class Coverage(object):
             check_include=self._tracing_check_include_omit_etc,
             timid=self.config.timid,
             branch=self.config.branch,
+            record_callers=self.config.callers,
             warn=self._warn,
             coroutine=self.config.coroutine,
             )
@@ -594,6 +598,7 @@ class Coverage(object):
         self.data.add_line_data(self.collector.get_line_data())
         self.data.add_arc_data(self.collector.get_arc_data())
         self.data.add_plugin_data(self.collector.get_plugin_data())
+        self.data.add_callers_data(self.collector.get_callers_data())
         self.collector.reset()
 
         # If there are still entries in the source_pkgs list, then we never

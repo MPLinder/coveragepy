@@ -5,7 +5,7 @@ import os
 from coverage.backward import iitems, pickle
 from coverage.files import PathAliases
 from coverage.misc import file_be_gone
-
+from coverage.test_finder import TestFinder
 
 class CoverageData(object):
     """Manages collected coverage data, including file storage.
@@ -25,6 +25,19 @@ class CoverageData(object):
             { 'file1': "django.coverage", ... }
             # TODO: how to handle the difference between a plugin module
             # name, and the class in the module?
+
+        * callers: a dict mapping filenames to another dict that maps
+            line numbers (or arcs) to a TestFinderResult, which contains a set of calling tests.
+            Calling tests are identified with the TestIdentifier named tuple
+            consisting of a filename, line number, and function name
+            { 'file1':
+                {
+                   (-1, 50): TestFinderResult(set([TestIdentifier(
+                        filename='tests\\mytests.py', line_no=44, function_name='test_three'
+                      )])),
+                },
+              'file2: ...
+            }
 
     """
 
@@ -77,6 +90,20 @@ class CoverageData(object):
         #       }
         self.plugins = {}
 
+        # A map from canonical source file name to a dict of test callers.
+        # Value dict is a map of source line numbers (or arc pairs if in branch mode)
+        # to a set of calling tests.
+        #
+        #  { 'file1':
+        #       {
+        #           (-1, 50): TestFinderResult(set([TestIdentifier(
+        #                filename='tests\\mytests.py', line_no=44, function_name='test_three'
+        #              )])),
+        #       },
+        #     'file2: ...
+        #   }
+        self.callers = {}
+
     def usefile(self, use_file=True):
         """Set whether or not to use a disk file for data."""
         self.use_file = use_file
@@ -84,9 +111,9 @@ class CoverageData(object):
     def read(self):
         """Read coverage data from the coverage data file (if it exists)."""
         if self.use_file:
-            self.lines, self.arcs = self._read_file(self.filename)
+            self.lines, self.arcs, self.callers = self._read_file(self.filename)
         else:
-            self.lines, self.arcs = {}, {}
+            self.lines, self.arcs, self.callers = {}, {}, {}
 
     def write(self, suffix=None):
         """Write the collected coverage data to a file.
@@ -110,6 +137,7 @@ class CoverageData(object):
                 file_be_gone(self.filename)
         self.lines = {}
         self.arcs = {}
+        self.callers = {}
 
     def line_data(self):
         """Return the map from filenames to lists of line numbers executed."""
@@ -121,6 +149,12 @@ class CoverageData(object):
         """Return the map from filenames to lists of line number pairs."""
         return dict(
             (f, sorted(amap.keys())) for f, amap in iitems(self.arcs)
+            )
+
+    def callers_data(self):
+        """Return the map from filenames to test caller maps."""
+        return dict(
+            (f, callers_map) for f, callers_map in iitems(self.callers)
             )
 
     def plugin_data(self):
@@ -137,6 +171,10 @@ class CoverageData(object):
         if arcs:
             data['arcs'] = arcs
 
+        calling_tests = self.callers_data()
+        if calling_tests:
+            data['callers'] = calling_tests
+
         if self.collector:
             data['collector'] = self.collector
 
@@ -149,7 +187,7 @@ class CoverageData(object):
 
     def read_file(self, filename):
         """Read the coverage data from `filename`."""
-        self.lines, self.arcs = self._read_file(filename)
+        self.lines, self.arcs, self.callers = self._read_file(filename)
 
     def raw_data(self, filename):
         """Return the raw pickled data from `filename`."""
@@ -162,12 +200,13 @@ class CoverageData(object):
     def _read_file(self, filename):
         """Return the stored coverage data from the given file.
 
-        Returns two values, suitable for assigning to `self.lines` and
-        `self.arcs`.
+        Returns three values, suitable for assigning to `self.lines` and
+        `self.arcs` and `self.callers`.
 
         """
         lines = {}
         arcs = {}
+        callers = {}
         try:
             data = self.raw_data(filename)
             if isinstance(data, dict):
@@ -181,9 +220,14 @@ class CoverageData(object):
                     (f, dict.fromkeys(arcpairs, None))
                         for f, arcpairs in iitems(data.get('arcs', {}))
                     ])
+                # Unpack the 'callers' item (sets of calling tests).
+                callers = dict([
+                    (f, test_sets_map)
+                        for f, test_sets_map in iitems(data.get('callers', {}))
+                    ])
         except Exception:
             pass
-        return lines, arcs
+        return lines, arcs, callers
 
     def combine_parallel_data(self, aliases=None):
         """Combine a number of data files together.
@@ -201,13 +245,18 @@ class CoverageData(object):
         for f in os.listdir(data_dir or '.'):
             if f.startswith(localdot):
                 full_path = os.path.join(data_dir, f)
-                new_lines, new_arcs = self._read_file(full_path)
+                new_lines, new_arcs, new_callers = self._read_file(full_path)
                 for filename, file_data in iitems(new_lines):
                     filename = aliases.map(filename)
                     self.lines.setdefault(filename, {}).update(file_data)
                 for filename, file_data in iitems(new_arcs):
                     filename = aliases.map(filename)
                     self.arcs.setdefault(filename, {}).update(file_data)
+
+                for filename, file_data in iitems(new_callers):
+                    filename = aliases.map(filename)
+                    all_callers = self.callers.setdefault(filename, {})
+                    TestFinder.merge_callers_dicts(all_callers, file_data)
                 if f != local:
                     os.remove(full_path)
 
@@ -228,6 +277,12 @@ class CoverageData(object):
         """
         for filename, arcs in iitems(arc_data):
             self.arcs.setdefault(filename, {}).update(arcs)
+
+    def add_callers_data(self, callers_data):
+        """Add measured test callers data.
+        """
+        for filename, callers_dict in iitems(callers_data):
+            self.callers.setdefault(filename, {}).update(callers_dict)
 
     def add_plugin_data(self, plugin_data):
         self.plugins.update(plugin_data)
@@ -253,10 +308,15 @@ class CoverageData(object):
         """A map containing all the arcs executed in `filename`."""
         return self.arcs.get(filename) or {}
 
+    def executed_calling_tests(self, filename):
+        """A map containing all the tests callers executed in `filename`."""
+        return self.callers.get(filename) or {}
+
     def add_to_hash(self, filename, hasher):
         """Contribute `filename`'s data to the Md5Hash `hasher`."""
         hasher.update(self.executed_lines(filename))
         hasher.update(self.executed_arcs(filename))
+        hasher.update(self.executed_calling_tests(filename))
 
     def summary(self, fullpath=False):
         """Return a dict summarizing the coverage data.
@@ -278,6 +338,10 @@ class CoverageData(object):
     def has_arcs(self):
         """Does this data have arcs?"""
         return bool(self.arcs)
+
+    def has_calling_tests(self):
+        """Does this data have calling tests data?"""
+        return bool(self.callers)
 
 
 if __name__ == '__main__':
