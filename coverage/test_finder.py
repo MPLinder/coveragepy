@@ -11,6 +11,7 @@ import inspect
 from collections import namedtuple
 from unittest import TestCase, FunctionTestCase
 from pprint import pformat
+from nose.tools import nottest
 
 from coverage.backward import iitems
 
@@ -41,6 +42,7 @@ class TestFinder(object):
 
         return
 
+    @nottest
     def find_tests_in_frame(self, trace_frame):
         """Identify anything that looks like a 'test' in the call stack."""
 

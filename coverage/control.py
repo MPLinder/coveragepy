@@ -43,7 +43,7 @@ class Coverage(object):
 
     """
     def __init__(self, data_file=None, data_suffix=None, cover_pylib=None,
-                auto_data=False, timid=None, branch=None, callers=False, config_file=True,
+                auto_data=False, timid=None, branch=None, callers=None, config_file=True,
                 source=None, omit=None, include=None, debug=None,
                 debug_file=None, coroutine=None, plugins=None):
         """

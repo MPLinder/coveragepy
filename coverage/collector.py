@@ -270,8 +270,8 @@ class Collector(object):
         TODO: need similar for callers_data
         """
         from pprint import pformat
-        if self.callers_data:
-            print("%s" % (pformat(self.callers_data),))  # XXX TODO
+        # if self.callers_data:
+        #     print("%s" % (pformat(self.callers_data),))  # XXX TODO
         if self.branch:
             # If we were measuring branches, then we have to re-build the dict
             # to show line data.

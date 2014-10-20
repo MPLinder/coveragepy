@@ -18,7 +18,7 @@ class CmdLineTest(CoverageTest):
     # uses when calling the function.
     defaults = mock.Mock()
     defaults.coverage(
-        cover_pylib=None, data_suffix=None, timid=None, branch=None,
+        cover_pylib=None, data_suffix=None, timid=None, branch=None, callers=None,
         config_file=True, source=None, include=None, omit=None, debug=None,
         coroutine=None,
     )

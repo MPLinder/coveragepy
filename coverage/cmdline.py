@@ -21,7 +21,7 @@ class Opts(object):
         )
     callers = optparse.make_option(
         '', '--callers', action='store_true',
-        help="Measure calling tests for each statement."
+        help="Measure calling tests for each statement. (Currently requires --timid)"
         )
     coroutine = optparse.make_option(
         '', '--coroutine', action='store', metavar="LIB",

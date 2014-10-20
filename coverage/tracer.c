@@ -83,8 +83,10 @@ typedef struct {
     PyObject * warn;
     PyObject * coroutine_id_func;
     PyObject * data;
+    PyObject * callers_data;
     PyObject * plugin_data;
     PyObject * should_trace_cache;
+    PyObject * should_record_callers;
     PyObject * arcs;
 
     /* Has the tracer been started? */
@@ -195,6 +197,7 @@ CTracer_init(CTracer *self, PyObject *args_unused, PyObject *kwds_unused)
     self->data = NULL;
     self->plugin_data = NULL;
     self->should_trace_cache = NULL;
+    self->should_record_callers = NULL;
     self->arcs = NULL;
 
     self->started = 0;
@@ -236,8 +239,10 @@ CTracer_dealloc(CTracer *self)
     Py_XDECREF(self->warn);
     Py_XDECREF(self->coroutine_id_func);
     Py_XDECREF(self->data);
+    Py_XDECREF(self->callers_data);
     Py_XDECREF(self->plugin_data);
     Py_XDECREF(self->should_trace_cache);
+    Py_XDECREF(self->should_record_callers);
 
     DataStack_dealloc(self, &self->data_stack);
     if (self->data_stacks) {
@@ -787,11 +792,17 @@ CTracer_members[] = {
     { "data",               T_OBJECT, offsetof(CTracer, data), 0,
             PyDoc_STR("The raw dictionary of trace data.") },
 
+    { "callers_data",               T_OBJECT, offsetof(CTracer, callers_data), 0,
+            PyDoc_STR("The raw dictionary of test callers data.") },
+
     { "plugin_data",        T_OBJECT, offsetof(CTracer, plugin_data), 0,
             PyDoc_STR("Mapping from filename to plugin name.") },
 
     { "should_trace_cache", T_OBJECT, offsetof(CTracer, should_trace_cache), 0,
             PyDoc_STR("Dictionary caching should_trace results.") },
+
+    { "should_record_callers", T_OBJECT, offsetof(CTracer, should_record_callers), 0,
+            PyDoc_STR("Function indicating whether we should record test callers.") },
 
     { "arcs",               T_OBJECT, offsetof(CTracer, arcs), 0,
             PyDoc_STR("Should we trace arcs, or just lines?") },
