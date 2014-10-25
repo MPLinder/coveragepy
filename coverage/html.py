@@ -222,12 +222,18 @@ class HtmlReporter(Reporter):
                         "<span class='%s'>%s</span>" % (tok_type, tok_html)
                         )
 
+            callers_html_list = []
+            callers = analysis.callers_data.get(lineno)
+            if callers:
+                callers_html_list = [caller.function_name + " in " + caller.filename + " line " + str(caller.line_no) for caller in callers.test_methods]
+
             lines.append({
                 'html': ''.join(html),
                 'number': lineno,
                 'class': ' '.join(line_class) or "pln",
                 'annotate': annotate_html,
                 'annotate_title': annotate_title,
+                'callers_html_list': callers_html_list,
             })
 
         # Write the HTML page for this file.

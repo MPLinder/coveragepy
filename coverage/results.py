@@ -18,6 +18,7 @@ class Analysis(object):
             exclude=self.coverage._exclude_regex('exclude')
             )
         self.statements, self.excluded = self.parser.parse_source()
+        self.callers_data = self.coverage.data.callers_data().get(self.filename, {})
 
         # Identify missing statements.
         executed = self.coverage.data.executed_lines(self.filename)

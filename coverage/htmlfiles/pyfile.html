@@ -72,6 +72,12 @@
             <td class='text' valign='top'>
                 {% for line in lines %}
                     <p id='t{{line.number}}' class='{{line.class}}'>{% if line.annotate %}<span class='annotate' title='{{line.annotate_title}}'>{{line.annotate}}</span>{% endif %}{{line.html}}<span class='strut'>&nbsp;</span></p>
+
+                    {% if line.callers_html_list %}
+                        {% for callers_html in line.callers_html_list %}
+                            <p>{{callers_html}}</p>
+                        {% endfor %}
+                    {% endif %}
                 {% endfor %}
             </td>
         </tr>
