@@ -161,7 +161,7 @@ class PyTracer(object):
                             line_key
                         ] = None
                         if which_tests is not None:
-                            which_tests = TestFinderResult.merge_into_dict(
+                            TestFinderResult.merge_into_dict(
                                 self.cur_file_callers_dict,
                                 line_key,
                                 which_tests
@@ -170,7 +170,7 @@ class PyTracer(object):
                         for lineno in range(lineno_from, lineno_to+1):
                             self.cur_file_dict[lineno] = None
                             if which_tests is not None:
-                                which_tests = TestFinderResult.merge_into_dict(
+                                TestFinderResult.merge_into_dict(
                                     self.cur_file_callers_dict,
                                     lineno,
                                     which_tests

@@ -7,7 +7,7 @@ Code to find test callers in the stack when tracing statements.
 """
 
 import os
-import inspect
+from inspect import istraceback, getfile
 from collections import namedtuple
 from unittest import TestCase, FunctionTestCase
 from pprint import pformat
@@ -27,8 +27,8 @@ def log(msg, level=1):
     if level >= VERBOSE_LEVEL:
         print(msg)
 
-
-TestIdentifier = namedtuple("TestIdentifier", ['filename', 'line_no', 'function_name'])
+#: Collect basic info about a frame: filename, line number, and function name
+FrameInfo = namedtuple("FrameInfo", ['filename', 'line_no', 'function_name'])
 
 
 class TestFinder(object):
@@ -59,14 +59,6 @@ class TestFinder(object):
 
         test_methods = set()
 
-        try:
-            trace_frame_info = inspect.getframeinfo(trace_frame)
-        except:
-            return None
-
-        # Is this the right concept to use to identify these?
-        trace_frame_id = "%s:%s:%s" % (trace_frame_info.filename, trace_frame_info.lineno, trace_frame_info.function)
-
         frame = trace_frame
         i = 0
         while True:
@@ -75,60 +67,79 @@ class TestFinder(object):
             if not frame:
                 break
 
-            f_info = inspect.getframeinfo(frame)
-            obj_name = f_info.function
-            # m_info = str(f_info.code_context[0]).strip()
-            #
-            # this_self = None
-            # arg_vals = inspect.getargvalues(frame)
-            # if arg_vals and len(arg_vals.args):
-            #     first_arg = arg_vals.args[0]
-            #     this_self = arg_vals.locals[first_arg]
-
+            f_info = self.get_frame_info(frame)
             is_test_method = self._is_test_method(frame, f_info)
-
             if is_test_method:
-                # test_method_label = "%s:%s:%s" % (f_info.filename, f_info.lineno, obj_name)
-                test_id = self._get_test_id(f_info.filename, f_info.lineno, obj_name)
-                test_methods.add(test_id)
-                # print("%s - %s %r (%s) %s" % (i, obj_name, this_self, test_method_label, m_info))
+                test_methods.add(f_info)
 
-        which_tests = TestFinderResult(trace_frame_id, test_methods)
+        if not test_methods:
+            return None
+
+        try:
+            # Only need to identify this frame if we have found tests
+            trace_frame_info = self.get_frame_info(trace_frame)
+        except:
+            # traceback.print_exc()
+            return None
+
+        # Is this the right concept to use to identify these?
+        # trace_frame_id = "%s:%s:%s" % (trace_frame_info.filename, trace_frame_info.lineno, trace_frame_info.function)
+
+        which_tests = TestFinderResult(trace_frame_info, test_methods)
         return which_tests
 
     @nottest
-    def _is_test_method(self, frame, frame_info):
-        obj_name = frame_info.function
+    def _is_test_method(self, frame, f_info):
+        obj_name = f_info.function_name
 
         # If it's a function simply named 'test', or begins
         # with 'test_', then assume it's a valid test function
         if obj_name == 'test' or obj_name.find('test_') > -1:
             return True
 
-        # Need an exception handler for below?
-
-        # Find the first argument to the function, if any,
-        # to see if it looks like an instance of a test case class.
-        this_self = None
-        arg_vals = inspect.getargvalues(frame)
-        if arg_vals and len(arg_vals.args):
-            first_arg = arg_vals.args[0]
-            this_self = arg_vals.locals[first_arg]
-
+        this_self = self.get_first_arg(frame)
         if this_self is not None:
 
             # Does this look like a method of a known test case class?
             if isinstance(this_self, self.test_case_classes):
                 # If the function call looks like it originates
                 # in the unit test framework itself, do not include.
-                if not self._is_test_framework_method(frame, frame_info):
+                if not self._is_test_framework_method(frame, f_info):
                     return True
 
         return False
 
+    @staticmethod
+    def get_frame_info(frame):
+        """Get a basic description of the frame. Faster than the version
+        in inspect.py (which does more)
+
+        :return: a basic description of the frame.
+        :rtype: FrameInfo
+        """
+        if istraceback(frame):
+            lineno = frame.tb_lineno
+            frame = frame.tb_frame
+        else:
+            lineno = frame.f_lineno
+
+        filename = getfile(frame)
+        func_name = frame.f_code.co_name
+        return FrameInfo(filename, lineno, func_name)
+
+    @staticmethod
+    def get_first_arg(frame):
+        """Grab the first function/method argument, if any, from the frame."""
+        co = frame.f_code
+        varnames = co.co_varnames
+        if len(varnames) < 1:
+            return None
+
+        return frame.f_locals.get(varnames[0], None)
+
     # noinspection PyUnusedLocal
     @nottest
-    def _is_test_framework_method(self, frame, frame_info):
+    def _is_test_framework_method(self, frame, f_info):
         """
         :return: True if the function at this frame appears
         to live inside a unit test framework.
@@ -136,20 +147,10 @@ class TestFinder(object):
         This need some work to be more flexible with different frameworks...
         """
         for package_name in self._test_packages:
-            if frame_info.filename.find(package_name) != -1:
+            if f_info.filename.find(package_name) != -1:
+            # if f_info[0].find(package_name) != -1:
                 return True
         return False
-
-    @staticmethod
-    @nottest
-    def _get_test_id(source_file, line_no, func_name):
-        #full_id = "%s:%s:%s" % (source_file, line_no, func_name)
-        full_id = TestIdentifier(
-            filename=source_file,
-            line_no=line_no,
-            function_name=func_name,
-        )
-        return full_id
 
     @staticmethod
     def merge_callers_dicts(this_callers, other_callers):
@@ -182,7 +183,7 @@ class TestFinderResult(object):
 
     line_id is an identifier for the LUT
 
-    test_methods is a set of TestIdentifiers for tests we found.
+    test_methods is a set of FrameInfo's for tests we found.
     """
 
     def __init__(self, line_id, test_methods=None):
@@ -191,7 +192,8 @@ class TestFinderResult(object):
 
     @nottest
     def has_tests(self):
-        if self.test_methods and len(self.test_methods):
+        # if self.test_methods and len(self.test_methods):
+        if self.test_methods:
             return True
         return False
 
@@ -233,7 +235,7 @@ class TestFinderResult(object):
             past_result.merge(result)
         else:
             past_result = result
-        if not past_result.has_tests():
+        if not past_result.test_methods:
             past_result = None
         # Don't need to store None values
         if past_result is not None:
