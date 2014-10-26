@@ -127,6 +127,9 @@ coverage.pyfile_ready = function ($) {
     $(".button_toggle_mis").click(function (evt) {coverage.toggle_lines(evt.target, "mis");});
     $(".button_toggle_par").click(function (evt) {coverage.toggle_lines(evt.target, "par");});
 
+    $(".caller_data").toggle();
+    $(".text .has_callers").append("(click to see callers)").click(function () {$(".caller_data").toggle();});
+
     coverage.assign_shortkeys();
     coverage.wire_up_help_panel();
 };
