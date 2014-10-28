@@ -53,43 +53,50 @@ class TestFinder(object):
 
         return
 
+    # @nottest
+    # def get_frameinfo_if_test(self, trace_frame):
+    #     f_info = self.get_frame_info(trace_frame)
+    #     if self.is_test_method(trace_frame, f_info):
+    #         return f_info
+    #     return None
+
+    # @nottest
+    # def find_tests_in_frame(self, trace_frame):
+    #     """Identify anything that looks like a 'test' in the call stack."""
+    #
+    #     test_methods = set()
+    #
+    #     frame = trace_frame
+    #     i = 0
+    #     while True:
+    #         i += 1
+    #         frame = getattr(frame, "f_back", None)
+    #         if not frame:
+    #             break
+    #
+    #         f_info = self.get_frame_info(frame)
+    #         is_test_method = self.is_test_method(frame, f_info)
+    #         if is_test_method:
+    #             test_methods.add(f_info)
+    #
+    #     if not test_methods:
+    #         return None
+    #
+    #     try:
+    #         # Only need to identify this frame if we have found tests
+    #         trace_frame_info = self.get_frame_info(trace_frame)
+    #     except:
+    #         # traceback.print_exc()
+    #         return None
+    #
+    #     # Is this the right concept to use to identify these?
+    #     # trace_frame_id = "%s:%s:%s" % (trace_frame_info.filename, trace_frame_info.lineno, trace_frame_info.function)
+    #
+    #     which_tests = TestFinderResult(trace_frame_info, test_methods)
+    #     return which_tests
+
     @nottest
-    def find_tests_in_frame(self, trace_frame):
-        """Identify anything that looks like a 'test' in the call stack."""
-
-        test_methods = set()
-
-        frame = trace_frame
-        i = 0
-        while True:
-            i += 1
-            frame = getattr(frame, "f_back", None)
-            if not frame:
-                break
-
-            f_info = self.get_frame_info(frame)
-            is_test_method = self._is_test_method(frame, f_info)
-            if is_test_method:
-                test_methods.add(f_info)
-
-        if not test_methods:
-            return None
-
-        try:
-            # Only need to identify this frame if we have found tests
-            trace_frame_info = self.get_frame_info(trace_frame)
-        except:
-            # traceback.print_exc()
-            return None
-
-        # Is this the right concept to use to identify these?
-        # trace_frame_id = "%s:%s:%s" % (trace_frame_info.filename, trace_frame_info.lineno, trace_frame_info.function)
-
-        which_tests = TestFinderResult(trace_frame_info, test_methods)
-        return which_tests
-
-    @nottest
-    def _is_test_method(self, frame, f_info):
+    def is_test_method(self, frame, f_info):
         obj_name = f_info.function_name
 
         # If it's a function simply named 'test', or begins
@@ -182,6 +189,8 @@ class TestFinderResult(object):
     line under test (LUT).
 
     line_id is an identifier for the LUT
+    TODO: line_id concept is not used.  Line associated is not kept in the result,
+    but rather is a KEY where this object is a VALUE.
 
     test_methods is a set of FrameInfo's for tests we found.
     """

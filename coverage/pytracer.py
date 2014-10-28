@@ -44,6 +44,8 @@ class PyTracer(object):
         self.last_line = [0]
 
         self.data_stack = []
+        self.callers_stack = []  # stack of f_code (code objects) of identified tests currently executing.
+        self.callers_line = {}  # map callers_stack elements to currently executing line (FrameInfo)
         self.last_exc_back = None
         self.last_exc_firstlineno = 0
         self.thread = None
@@ -95,8 +97,6 @@ class PyTracer(object):
                 )
             self.last_exc_back = None
 
-        filename = frame.f_code.co_filename
-
         DO_PRINT = False  # True
 
         if event == 'call':
@@ -105,7 +105,7 @@ class PyTracer(object):
             self.data_stack.append(
                 (self.plugin, self.cur_file_dict, self.cur_file_callers_dict, self.last_line)
             )
-            # filename = frame.f_code.co_filename
+            filename = frame.f_code.co_filename
             disp = self.should_trace_cache.get(filename)
             if disp is None:
                 disp = self.should_trace(filename, frame)
@@ -137,6 +137,14 @@ class PyTracer(object):
                 self.cur_file_dict = self.data[tracename]
                 self.cur_file_callers_dict = self.callers_data[tracename]
                 self.plugin = disp.plugin
+
+                if self.should_record_callers:
+                    f_info = self.test_finder.get_frame_info(frame)
+                    if self.test_finder.is_test_method(frame, f_info):
+                        if DO_PRINT:
+                            print("\nCALL push: %r\n" % (frame.f_code,))
+                        self.callers_stack.append(frame.f_code)
+
             # Set the last_line to -1 because the next arc will be entering a
             # code block, indicated by (-1, n).
             self.last_line = -1
@@ -149,11 +157,23 @@ class PyTracer(object):
             if lineno_from != -1:
                 if self.cur_file_dict is not None:
                     if DO_PRINT:
+                        filename = frame.f_code.co_filename
                         print("line %s: %s-%s - %s" % (filename, lineno_from, lineno_to, self._format_frame(frame)))
 
                     which_tests = None
-                    if self.should_record_callers and self.cur_file_callers_dict is not None:
-                        which_tests = self.test_finder.find_tests_in_frame(frame)
+                    if self.should_record_callers and self.callers_stack:
+                        if self._in_top_test(frame):
+                            f_info = self.test_finder.get_frame_info(frame)
+                            test_info = self.callers_stack[-1]
+                            if DO_PRINT:
+                                print("LINE set %r - %r" % (test_info, f_info,))
+
+                            # We're executing a line in a test. Update a dictionary which keeps
+                            # track of the currently executing line of each test in the test call stack
+                            self.callers_line[test_info] = f_info
+
+                        # Gather the currently executing lines of the callers_stack.
+                        which_tests = TestFinderResult(None, self.get_callers_mapped_stack())
 
                     if self.arcs:
                         line_key = (self.last_line, lineno_from)
@@ -179,6 +199,7 @@ class PyTracer(object):
                 self.last_line = lineno_to
         elif event == 'return':
             if DO_PRINT and self.cur_file_dict:
+                filename = frame.f_code.co_filename
                 print("return from %s: %s - %s" % (filename, self.last_line, self._format_frame(frame)))
             if self.arcs and self.cur_file_dict:
                 first = frame.f_code.co_firstlineno
@@ -187,10 +208,55 @@ class PyTracer(object):
             self.plugin, self.cur_file_dict, self.cur_file_callers_dict, self.last_line = (
                 self.data_stack.pop()
             )
+
+            if self.should_record_callers:
+                if self._in_top_test(frame):
+                    if DO_PRINT:
+                        f_info = self.test_finder.get_frame_info(frame)
+                        print("\nCALL pop: %r\n" % (f_info,))
+                    # Should we protect this with an exception handler? An exception would indicate a bug...
+                    t_co = self.callers_stack.pop()
+                    try:
+                        del self.callers_line[t_co]
+                    except KeyError:
+                        pass
+                    del t_co
+
         elif event == 'exception':
             self.last_exc_back = frame.f_back
             self.last_exc_firstlineno = frame.f_code.co_firstlineno
         return self._trace
+
+    def _in_top_test(self, frame):
+        """
+        Return True if we're currently executing the test at the top of the self.callers_stack.
+
+        We use this to determine whether to update the currently executing line of that test,
+        and to know whether we're returning from that test and thus to pop the stack.
+
+        :param frame: currently executing frame
+        :return: True if this frame belongs to the top of self.callers_stack, otherwise False
+        """
+        if not self.callers_stack or frame is None:
+            return False
+        last_call = self.callers_stack[-1]
+        if frame.f_code == last_call:
+            return True
+        return False
+
+    def get_callers_mapped_stack(self):
+        """
+        Return a set representing the currently excecuting line of each test caller in the test call
+        stack (self.callers_stack).
+
+        :return: a set of FrameInfo objects of currently executing lines of tests in the test stack.
+        """
+        rv = set()
+        for caller_info in self.callers_stack:
+            caller_line_info = self.callers_line.get(caller_info, None)
+            if caller_line_info is not None:
+                rv.add(caller_line_info)
+        return rv
 
     def start(self):
         """Start this Tracer.
