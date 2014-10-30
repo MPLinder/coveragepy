@@ -13,6 +13,7 @@ class SummaryReporter(Reporter):
     def __init__(self, coverage, config):
         super(SummaryReporter, self).__init__(coverage, config)
         self.branches = coverage.data.has_arcs()
+        self.callers = coverage.data.has_calling_tests()
 
     def report(self, morfs, outfile=None):
         """Writes a report summarizing coverage statistics per module.
@@ -31,6 +32,9 @@ class SummaryReporter(Reporter):
         if self.branches:
             header += " Branch BrMiss"
             fmt_coverage += " %6d %6d"
+        if self.callers:
+            header += " Callers"
+            fmt_coverage += " %6d"
         width100 = Numbers.pc_str_width()
         header += "%*s" % (width100+4, "Cover")
         fmt_coverage += "%%%ds%%%%" % (width100+3,)
@@ -57,6 +61,8 @@ class SummaryReporter(Reporter):
                 args = (cu.name, nums.n_statements, nums.n_missing)
                 if self.branches:
                     args += (nums.n_branches, nums.n_missing_branches)
+                if self.callers:
+                    args += (nums.n_callers,)
                 args += (nums.pc_covered_str,)
                 if self.config.show_missing:
                     missing_fmtd = analysis.missing_formatted()
@@ -85,9 +91,14 @@ class SummaryReporter(Reporter):
             args = ("TOTAL", total.n_statements, total.n_missing)
             if self.branches:
                 args += (total.n_branches, total.n_missing_branches)
+            if self.callers:
+                args += (total.n_callers,)
             args += (total.pc_covered_str,)
             if self.config.show_missing:
                 args += ("",)
             outfile.write(fmt_coverage % args)
+
+            # from pprint import pformat
+            # print(pformat(total.calling_tests))
 
         return total.pc_covered

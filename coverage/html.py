@@ -226,7 +226,10 @@ class HtmlReporter(Reporter):
             callers = analysis.callers_data.get(lineno)
             if callers:
                 line_class.append("has_callers")
-                callers_html_list = [caller.function_name + " in " + caller.filename + " line " + str(caller.line_no) for caller in callers.test_methods]
+                callers_html_list = [
+                    caller.function_name + " in " + caller.filename + " line " + str(caller.line_no)
+                    for (caller, caller_test) in callers.test_methods
+                ]
 
             lines.append({
                 'html': ''.join(html),

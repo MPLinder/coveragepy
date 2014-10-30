@@ -42,9 +42,6 @@ class TestFinder(object):
 
         self.test_case_classes = tuple([TestCase, FunctionTestCase])
 
-        # Used to generate short integer IDs for tests.
-        self._current_test_num = 0
-
         # Identify package names of common unit test frameworks
         self._test_packages = [
             os.sep + 'unittest' + os.sep,
@@ -52,48 +49,6 @@ class TestFinder(object):
         ]
 
         return
-
-    # @nottest
-    # def get_frameinfo_if_test(self, trace_frame):
-    #     f_info = self.get_frame_info(trace_frame)
-    #     if self.is_test_method(trace_frame, f_info):
-    #         return f_info
-    #     return None
-
-    # @nottest
-    # def find_tests_in_frame(self, trace_frame):
-    #     """Identify anything that looks like a 'test' in the call stack."""
-    #
-    #     test_methods = set()
-    #
-    #     frame = trace_frame
-    #     i = 0
-    #     while True:
-    #         i += 1
-    #         frame = getattr(frame, "f_back", None)
-    #         if not frame:
-    #             break
-    #
-    #         f_info = self.get_frame_info(frame)
-    #         is_test_method = self.is_test_method(frame, f_info)
-    #         if is_test_method:
-    #             test_methods.add(f_info)
-    #
-    #     if not test_methods:
-    #         return None
-    #
-    #     try:
-    #         # Only need to identify this frame if we have found tests
-    #         trace_frame_info = self.get_frame_info(trace_frame)
-    #     except:
-    #         # traceback.print_exc()
-    #         return None
-    #
-    #     # Is this the right concept to use to identify these?
-    #     # trace_frame_id = "%s:%s:%s" % (trace_frame_info.filename, trace_frame_info.lineno, trace_frame_info.function)
-    #
-    #     which_tests = TestFinderResult(trace_frame_info, test_methods)
-    #     return which_tests
 
     @nottest
     def is_test_method(self, frame, f_info):

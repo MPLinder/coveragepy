@@ -45,7 +45,9 @@ class PyTracer(object):
 
         self.data_stack = []
         self.callers_stack = []  # stack of f_code (code objects) of identified tests currently executing.
-        self.callers_line = {}  # map callers_stack elements to currently executing line (FrameInfo)
+        # map callers_stack elements to currently executing line:
+        # a (2-tuple of (FrameInfo, FrameInfo) of current test line and top of test line.
+        self.callers_line = {}
         self.last_exc_back = None
         self.last_exc_firstlineno = 0
         self.thread = None
@@ -143,7 +145,7 @@ class PyTracer(object):
                     if self.test_finder.is_test_method(frame, f_info):
                         if DO_PRINT:
                             print("\nCALL push: %r\n" % (frame.f_code,))
-                        self.callers_stack.append(frame.f_code)
+                        self.callers_stack.append((frame.f_code, f_info))
 
             # Set the last_line to -1 because the next arc will be entering a
             # code block, indicated by (-1, n).
@@ -164,13 +166,15 @@ class PyTracer(object):
                     if self.should_record_callers and self.callers_stack:
                         if self._in_top_test(frame):
                             f_info = self.test_finder.get_frame_info(frame)
-                            test_info = self.callers_stack[-1]
+                            test_info, test_top_info = self.callers_stack[-1]
                             if DO_PRINT:
                                 print("LINE set %r - %r" % (test_info, f_info,))
 
                             # We're executing a line in a test. Update a dictionary which keeps
                             # track of the currently executing line of each test in the test call stack
-                            self.callers_line[test_info] = f_info
+                            # We pair that with the FrameInfo of the top of the test function so we can
+                            # correlate different lines within the test to the same logical test for summarizing.
+                            self.callers_line[(test_info, test_top_info)] = (f_info, test_top_info)
 
                         # Gather the currently executing lines of the callers_stack.
                         which_tests = TestFinderResult(None, self.get_callers_mapped_stack())
@@ -227,20 +231,20 @@ class PyTracer(object):
             self.last_exc_firstlineno = frame.f_code.co_firstlineno
         return self._trace
 
-    def _in_top_test(self, frame):
+    def _in_top_test(self, current_frame):
         """
         Return True if we're currently executing the test at the top of the self.callers_stack.
 
         We use this to determine whether to update the currently executing line of that test,
         and to know whether we're returning from that test and thus to pop the stack.
 
-        :param frame: currently executing frame
+        :param current_frame: currently executing frame
         :return: True if this frame belongs to the top of self.callers_stack, otherwise False
         """
-        if not self.callers_stack or frame is None:
+        if not self.callers_stack or current_frame is None:
             return False
-        last_call = self.callers_stack[-1]
-        if frame.f_code == last_call:
+        last_call_f_code, last_call_top_info = self.callers_stack[-1]
+        if current_frame.f_code == last_call_f_code:
             return True
         return False
 

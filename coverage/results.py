@@ -40,6 +40,10 @@ class Analysis(object):
             n_branches = n_partial_branches = n_missing_branches = 0
             self.no_branch = set()
 
+        unique_tests = set()
+        if self.callers_data:
+            unique_tests = self.get_unique_tests(self.callers_data)
+
         self.numbers = Numbers(
             n_files=1,
             n_statements=len(self.statements),
@@ -48,6 +52,7 @@ class Analysis(object):
             n_branches=n_branches,
             n_partial_branches=n_partial_branches,
             n_missing_branches=n_missing_branches,
+            calling_tests=unique_tests,
             )
 
     def missing_formatted(self):
@@ -158,6 +163,21 @@ class Analysis(object):
             stats[lnum] = (exits, exits - missing)
         return stats
 
+    @staticmethod
+    def get_unique_tests(callers_data):
+        """
+        Get the set of test IDs (FrameInfo of their top line) that were invoked
+        in this code unit.
+
+        :param callers_data: callers_data from this file
+        :return: set of FrameInfo  (test callers for this unit)
+        """
+        test_set = set()
+        for line_key, test_finder_result in iitems(callers_data):
+            for test_line, test_top_line in test_finder_result.test_methods:
+                test_set.add(test_top_line)
+        return test_set
+
 
 class Numbers(object):
     """The numerical results of measuring coverage.
@@ -173,7 +193,8 @@ class Numbers(object):
     _near100 = 99.0
 
     def __init__(self, n_files=0, n_statements=0, n_excluded=0, n_missing=0,
-                    n_branches=0, n_partial_branches=0, n_missing_branches=0
+                    n_branches=0, n_partial_branches=0, n_missing_branches=0,
+                    calling_tests=None
                     ):
         self.n_files = n_files
         self.n_statements = n_statements
@@ -182,6 +203,7 @@ class Numbers(object):
         self.n_branches = n_branches
         self.n_partial_branches = n_partial_branches
         self.n_missing_branches = n_missing_branches
+        self.calling_tests = calling_tests or set()
 
     @classmethod
     def set_precision(cls, precision):
@@ -190,6 +212,10 @@ class Numbers(object):
         cls._precision = precision
         cls._near0 = 1.0 / 10**precision
         cls._near100 = 100.0 - cls._near0
+
+    @property
+    def n_callers(self):
+        return len(self.calling_tests)
 
     @property
     def n_executed(self):
@@ -250,6 +276,9 @@ class Numbers(object):
         nums.n_missing_branches = (
             self.n_missing_branches + other.n_missing_branches
             )
+        nums.calling_tests = (
+            self.calling_tests.union(other.calling_tests)
+        )
         return nums
 
     def __radd__(self, other):
