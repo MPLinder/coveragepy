@@ -7,6 +7,8 @@ Code to find test callers in the stack when tracing statements.
 """
 
 import os
+import sys
+
 from inspect import istraceback, getfile
 from collections import namedtuple
 from unittest import TestCase, FunctionTestCase
@@ -25,7 +27,9 @@ VERBOSE_LEVEL = 1
 
 def log(msg, level=1):
     if level >= VERBOSE_LEVEL:
-        print(msg)
+        sys.stderr.write(msg)
+        sys.stderr.write("\n")
+        sys.stderr.flush()
 
 #: Collect basic info about a frame: filename, line number, and function name
 FrameInfo = namedtuple("FrameInfo", ['filename', 'line_no', 'function_name'])
@@ -53,10 +57,16 @@ class TestFinder(object):
     @nottest
     def is_test_method(self, frame, f_info):
         obj_name = f_info.function_name
+        # log("Is test? " + str(f_info))
 
         # If it's a function simply named 'test', or begins
         # with 'test_', then assume it's a valid test function
         if obj_name == 'test' or obj_name.find('test_') > -1:
+            return True
+
+        #log(obj_name[:9])
+        if f_info.filename[:9] == "<doctest ":
+            # log("FOUND DT: " + f_info.filename)
             return True
 
         this_self = self.get_first_arg(frame)

@@ -3,7 +3,7 @@
 import sys
 import inspect
 
-from .test_finder import TestFinder, TestFinderResult
+from coverage.test_finder import TestFinder, TestFinderResult, log
 
 
 class PyTracer(object):
@@ -119,7 +119,7 @@ class PyTracer(object):
             if disp.trace:
                 tracename = disp.source_filename
                 if DO_PRINT:
-                    print("%s: %s - frame: <%s>" % (event, tracename, self._format_call(frame)))
+                    log("%s: %s - frame: <%s>" % (event, tracename, self._format_call(frame)))
                 if disp.plugin:
                     dyn_func = disp.plugin.dynamic_source_file_name()
                     if dyn_func:
@@ -144,7 +144,7 @@ class PyTracer(object):
                     f_info = self.test_finder.get_frame_info(frame)
                     if self.test_finder.is_test_method(frame, f_info):
                         if DO_PRINT:
-                            print("\nCALL push: %r\n" % (frame.f_code,))
+                            log("\nCALL push: %r\n" % (frame.f_code,))
                         self.callers_stack.append((frame.f_code, f_info))
 
             # Set the last_line to -1 because the next arc will be entering a
@@ -160,7 +160,7 @@ class PyTracer(object):
                 if self.cur_file_dict is not None:
                     if DO_PRINT:
                         filename = frame.f_code.co_filename
-                        print("line %s: %s-%s - %s" % (filename, lineno_from, lineno_to, self._format_frame(frame)))
+                        log("line %s: %s-%s - %s" % (filename, lineno_from, lineno_to, self._format_frame(frame)))
 
                     which_tests = None
                     if self.should_record_callers and self.callers_stack:
@@ -168,7 +168,7 @@ class PyTracer(object):
                             f_info = self.test_finder.get_frame_info(frame)
                             test_info, test_top_info = self.callers_stack[-1]
                             if DO_PRINT:
-                                print("LINE set %r - %r" % (test_info, f_info,))
+                                log("LINE set %r - %r" % (test_info, f_info,))
 
                             # We're executing a line in a test. Update a dictionary which keeps
                             # track of the currently executing line of each test in the test call stack
@@ -204,7 +204,7 @@ class PyTracer(object):
         elif event == 'return':
             if DO_PRINT and self.cur_file_dict:
                 filename = frame.f_code.co_filename
-                print("return from %s: %s - %s" % (filename, self.last_line, self._format_frame(frame)))
+                log("return from %s: %s - %s" % (filename, self.last_line, self._format_frame(frame)))
             if self.arcs and self.cur_file_dict:
                 first = frame.f_code.co_firstlineno
                 self.cur_file_dict[(self.last_line, -first)] = None
@@ -217,7 +217,7 @@ class PyTracer(object):
                 if self._in_top_test(frame):
                     if DO_PRINT:
                         f_info = self.test_finder.get_frame_info(frame)
-                        print("\nCALL pop: %r\n" % (f_info,))
+                        log("\nCALL pop: %r\n" % (f_info,))
                     # Should we protect this with an exception handler? An exception would indicate a bug...
                     t_co = self.callers_stack.pop()
                     try:
