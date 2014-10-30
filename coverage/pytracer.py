@@ -3,7 +3,7 @@
 import sys
 import inspect
 
-from coverage.test_finder import TestFinder, TestFinderResult, log
+from coverage.test_finder import TestFinder, TestFinderResult, log, TestLine
 
 
 class PyTracer(object):
@@ -45,9 +45,7 @@ class PyTracer(object):
 
         self.data_stack = []
         self.callers_stack = []  # stack of f_code (code objects) of identified tests currently executing.
-        # map callers_stack elements to currently executing line:
-        # a (2-tuple of (FrameInfo, FrameInfo) of current test line and top of test line.
-        self.callers_line = {}
+        self.callers_line = {}  # map callers_stack elements to currently executing TestLine:
         self.last_exc_back = None
         self.last_exc_firstlineno = 0
         self.thread = None
@@ -166,15 +164,21 @@ class PyTracer(object):
                     if self.should_record_callers and self.callers_stack:
                         if self._in_top_test(frame):
                             f_info = self.test_finder.get_frame_info(frame)
-                            test_info, test_top_info = self.callers_stack[-1]
+                            test_code_obj, test_top_info = self.callers_stack[-1]
                             if DO_PRINT:
-                                log("LINE set %r - %r" % (test_info, f_info,))
+                                log("LINE set %r - %r" % (test_code_obj, f_info,))
 
                             # We're executing a line in a test. Update a dictionary which keeps
                             # track of the currently executing line of each test in the test call stack
-                            # We pair that with the FrameInfo of the top of the test function so we can
-                            # correlate different lines within the test to the same logical test for summarizing.
-                            self.callers_line[(test_info, test_top_info)] = (f_info, test_top_info)
+                            # We use a TestLine here to keep track of both the executing line and the
+                            # line of the top of the test, so we can correlate different lines to their logical test.
+                            test_line = TestLine(
+                                filename=f_info.filename,
+                                line_no=f_info.line_no,
+                                start_line=test_top_info.line_no,
+                                function_name=f_info.function_name
+                            )
+                            self.callers_line[(test_code_obj, test_top_info)] = test_line
 
                         # Gather the currently executing lines of the callers_stack.
                         which_tests = TestFinderResult(None, self.get_callers_mapped_stack())

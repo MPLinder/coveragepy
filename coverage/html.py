@@ -228,7 +228,7 @@ class HtmlReporter(Reporter):
                 line_class.append("has_callers")
                 callers_html_list = [
                     caller.function_name + " in " + caller.filename + " line " + str(caller.line_no)
-                    for (caller, caller_test) in callers.test_methods
+                    for caller in callers.test_methods
                 ]
 
             lines.append({

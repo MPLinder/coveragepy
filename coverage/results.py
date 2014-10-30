@@ -4,6 +4,7 @@ import collections
 
 from coverage.backward import iitems
 from coverage.misc import format_lines, join_regex
+from coverage.test_finder import get_unique_tests
 
 
 class Analysis(object):
@@ -42,7 +43,7 @@ class Analysis(object):
 
         unique_tests = set()
         if self.callers_data:
-            unique_tests = self.get_unique_tests(self.callers_data)
+            unique_tests = get_unique_tests(self.callers_data)
 
         self.numbers = Numbers(
             n_files=1,
@@ -162,21 +163,6 @@ class Analysis(object):
                 missing = 0
             stats[lnum] = (exits, exits - missing)
         return stats
-
-    @staticmethod
-    def get_unique_tests(callers_data):
-        """
-        Get the set of test IDs (FrameInfo of their top line) that were invoked
-        in this code unit.
-
-        :param callers_data: callers_data from this file
-        :return: set of FrameInfo  (test callers for this unit)
-        """
-        test_set = set()
-        for line_key, test_finder_result in iitems(callers_data):
-            for test_line, test_top_line in test_finder_result.test_methods:
-                test_set.add(test_top_line)
-        return test_set
 
 
 class Numbers(object):

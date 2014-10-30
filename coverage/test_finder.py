@@ -34,6 +34,40 @@ def log(msg, level=1):
 #: Collect basic info about a frame: filename, line number, and function name
 FrameInfo = namedtuple("FrameInfo", ['filename', 'line_no', 'function_name'])
 
+# Slightly different data structure for identified test lines. Also adds the line of the start of the function.
+TestLine = namedtuple("TestLine", ['filename', 'line_no', 'start_line', 'function_name'])
+
+
+def test_line_to_frame_info(test_line):
+    """
+    Convert a TestLine to just a FrameInfo of the test START line (not the line executed)
+    :param test_line: a TestLine instance
+    :type test_line: TestLine
+    :return: FrameInfo of the first line of the test.
+    :rtype: FrameInfo
+    """
+    return FrameInfo(
+        filename=test_line.filename,
+        line_no=test_line.start_line,
+        function_name=test_line.function_name
+    )
+
+
+def get_unique_tests(callers_data):
+    """
+    Get the set of test IDs (FrameInfo of their top line) that were invoked
+    in this code unit (source file).
+
+    :param callers_data: callers_data from this file
+    :return: set of FrameInfo  (test callers for this unit)
+    :rtype: set
+    """
+    test_set = set()
+    for line_key, test_finder_result in iitems(callers_data):
+        for test_line in test_finder_result.test_methods:
+            test_set.add(test_line_to_frame_info(test_line))
+    return test_set
+
 
 class TestFinder(object):
     """
