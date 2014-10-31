@@ -12,9 +12,8 @@ class Analysis(object):
 
     def __init__(self, cov, code_unit):
         self.coverage = cov
-        self.code_unit = code_unit
 
-        self.filename = self.code_unit.filename
+        self.filename = code_unit.filename
         self.parser = code_unit.get_parser(
             exclude=self.coverage._exclude_regex('exclude')
             )
@@ -94,7 +93,8 @@ class Analysis(object):
         """ The missing branch arcs, formatted nicely.
 
         Returns a string like "1->2, 1->3, 16->20". Omits any mention of
-        missing lines, so if line 17 is missing, then 16->17 won't be included.
+        branches from missing lines, so if line 17 is missing, then 17->18
+        won't be included.
 
         """
         arcs = self.missing_branch_arcs()
@@ -103,7 +103,7 @@ class Analysis(object):
         pairs = []
         for line, exits in line_exits:
             for ex in sorted(exits):
-                if line not in missing and ex not in missing:
+                if line not in missing:
                     pairs.append('%d->%d' % (line, ex))
         return ', '.join(pairs)
 
@@ -191,6 +191,13 @@ class Numbers(object):
         self.n_missing_branches = n_missing_branches
         self.calling_tests = calling_tests or set()
 
+    def init_args(self):
+        """Return a list for __init__(*args) to recreate this object."""
+        return [
+            self.n_files, self.n_statements, self.n_excluded, self.n_missing,
+            self.n_branches, self.n_partial_branches, self.n_missing_branches,
+        ]
+
     @classmethod
     def set_precision(cls, precision):
         """Set the number of decimal places used to report percentages."""
@@ -217,8 +224,8 @@ class Numbers(object):
     def pc_covered(self):
         """Returns a single percentage value for coverage."""
         if self.n_statements > 0:
-            pc_cov = (100.0 * (self.n_executed + self.n_executed_branches) /
-                        (self.n_statements + self.n_branches))
+            numerator, denominator = self.ratio_covered
+            pc_cov = (100.0 * numerator) / denominator
         else:
             pc_cov = 100.0
         return pc_cov
@@ -248,6 +255,13 @@ class Numbers(object):
         if cls._precision > 0:
             width += 1 + cls._precision
         return width
+
+    @property
+    def ratio_covered(self):
+        """Return a numerator and denominator for the coverage ratio."""
+        numerator = self.n_executed + self.n_executed_branches
+        denominator = self.n_statements + self.n_branches
+        return numerator, denominator
 
     def __add__(self, other):
         nums = Numbers()

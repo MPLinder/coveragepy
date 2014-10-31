@@ -5,6 +5,7 @@ Other contributions have been made by:
 
 Marc Abramowitz
 Chris Adams
+Danny Allen
 Geoff Bache
 Julian Berman
 Titus Brown
@@ -17,6 +18,7 @@ Matthew Desmarais
 Danek Duvall
 Ben Finney
 Martin Fuzzey
+Alex Gaynor
 Carl Gieringer
 Imri Goldberg
 Bill Hart

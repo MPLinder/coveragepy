@@ -23,6 +23,11 @@ except ImportError:
         sys.exit(1)
     CTracer = None
 
+try:
+    import __pypy__                             # pylint: disable=import-error
+except ImportError:
+    __pypy__ = None
+
 
 class Collector(object):
     """Collects trace data.
@@ -46,7 +51,7 @@ class Collector(object):
     _collectors = []
 
     def __init__(self,
-        should_trace, check_include, timid, branch, warn, coroutine, record_callers=False
+        should_trace, check_include, timid, branch, warn, concurrency, record_callers=False
     ):
         """Create a collector.
 
@@ -68,7 +73,9 @@ class Collector(object):
         `warn` is a warning function, taking a single string message argument,
         to be used if a warning needs to be issued.
 
-        TODO: `coroutine`
+        `concurrency` is a string indicating the concurrency library in use.
+        Valid values are "greenlet", "eventlet", "gevent", or "thread" (the
+        default).
 
         :keyword record_callers: if True we will record which tests called each line.
         """
@@ -78,21 +85,21 @@ class Collector(object):
         self.branch = branch
         self.threading = None
         self.record_callers = record_callers or False
-        self.coroutine = coroutine
+        self.concurrency = concurrency
 
-        self.coroutine_id_func = None
+        self.concur_id_func = None
 
         try:
-            if coroutine == "greenlet":
-                import greenlet
-                self.coroutine_id_func = greenlet.getcurrent
-            elif coroutine == "eventlet":
-                import eventlet.greenthread
-                self.coroutine_id_func = eventlet.greenthread.getcurrent
-            elif coroutine == "gevent":
-                import gevent
-                self.coroutine_id_func = gevent.getcurrent
-            elif coroutine == "thread" or not coroutine:
+            if concurrency == "greenlet":
+                import greenlet                 # pylint: disable=import-error
+                self.concur_id_func = greenlet.getcurrent
+            elif concurrency == "eventlet":
+                import eventlet.greenthread     # pylint: disable=import-error
+                self.concur_id_func = eventlet.greenthread.getcurrent
+            elif concurrency == "gevent":
+                import gevent                   # pylint: disable=import-error
+                self.concur_id_func = gevent.getcurrent
+            elif concurrency == "thread" or not concurrency:
                 # It's important to import threading only if we need it.  If
                 # it's imported early, and the program being measured uses
                 # gevent, then gevent's monkey-patching won't work properly.
@@ -100,12 +107,12 @@ class Collector(object):
                 self.threading = threading
             else:
                 raise CoverageException(
-                    "Don't understand coroutine=%s" % coroutine
+                    "Don't understand concurrency=%s" % concurrency
                 )
         except ImportError:
             raise CoverageException(
-                "Couldn't trace with coroutine=%s, "
-                "the module isn't installed." % coroutine
+                "Couldn't trace with concurrency=%s, "
+                "the module isn't installed." % concurrency
             )
 
         self.reset()
@@ -140,7 +147,24 @@ class Collector(object):
         # A cache of the results from should_trace, the decision about whether
         # to trace execution in a file. A dict of filename to (filename or
         # None).
-        self.should_trace_cache = {}
+        if __pypy__ is not None:
+            # Alex Gaynor said:
+            # should_trace_cache is a strictly growing key: once a key is in
+            # it, it never changes.  Further, the keys used to access it are
+            # generally constant, given sufficient context. That is to say, at
+            # any given point _trace() is called, pypy is able to know the key.
+            # This is because the key is determined by the physical source code
+            # line, and that's invariant with the call site.
+            #
+            # This property of a dict with immutable keys, combined with
+            # call-site-constant keys is a match for PyPy's module dict,
+            # which is optimized for such workloads.
+            #
+            # This gives a 20% benefit on the workload described at
+            # https://bitbucket.org/pypy/pypy/issue/1871/10x-slower-than-cpython-under-coverage
+            self.should_trace_cache = __pypy__.newdict("module")
+        else:
+            self.should_trace_cache = {}
 
         # Our active Tracers.
         self.tracers = []
@@ -156,13 +180,13 @@ class Collector(object):
         tracer.warn = self.warn
         tracer.should_record_callers = self.record_callers
 
-        if hasattr(tracer, 'coroutine_id_func'):
-            tracer.coroutine_id_func = self.coroutine_id_func
-        elif self.coroutine_id_func:
+        if hasattr(tracer, 'concur_id_func'):
+            tracer.concur_id_func = self.concur_id_func
+        elif self.concur_id_func:
             raise CoverageException(
-                "Can't support coroutine=%s with %s, "
+                "Can't support concurrency=%s with %s, "
                 "only threads are supported" % (
-                    self.coroutine, self.tracer_name(),
+                    self.concurrency, self.tracer_name(),
                 )
             )
 

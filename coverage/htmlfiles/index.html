@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE html>
 <html>
 <head>
     <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
@@ -8,26 +8,32 @@
         <link rel='stylesheet' href='{{ extra_css }}' type='text/css'>
     {% endif %}
     <script type='text/javascript' src='jquery.min.js'></script>
+    <script type='text/javascript' src='jquery.debounce.min.js'></script>
     <script type='text/javascript' src='jquery.tablesorter.min.js'></script>
     <script type='text/javascript' src='jquery.hotkeys.js'></script>
     <script type='text/javascript' src='coverage_html.js'></script>
-    <script type='text/javascript' charset='utf-8'>
+    <script type='text/javascript'>
         jQuery(document).ready(coverage.index_ready);
     </script>
 </head>
-<body id='indexfile'>
+<body class='indexfile'>
 
 <div id='header'>
     <div class='content'>
         <h1>{{ title|escape }}:
             <span class='pc_cov'>{{totals.pc_covered_str}}%</span>
         </h1>
-        <img id='keyboard_icon' src='keybd_closed.png'>
+
+        <img id='keyboard_icon' src='keybd_closed.png' alt='Show keyboard shortcuts' />
+
+        <form id="filter_container">
+            <input id="filter" type="text" value="" placeholder="filter..." />
+        </form>
     </div>
 </div>
 
 <div class='help_panel'>
-    <img id='panel_icon' src='keybd_open.png'>
+    <img id='panel_icon' src='keybd_open.png' alt='Hide keyboard shortcuts' />
     <p class='legend'>Hot-keys on this page</p>
     <div>
     <p class='keyhelp'>
@@ -71,7 +77,7 @@
                 <td>{{totals.n_branches}}</td>
                 <td>{{totals.n_partial_branches}}</td>
                 {% endif %}
-                <td class='right'>{{totals.pc_covered_str}}%</td>
+                <td class='right' data-ratio='{{totals.ratio_covered|pair}}'>{{totals.pc_covered_str}}%</td>
             </tr>
         </tfoot>
         <tbody>
@@ -85,11 +91,15 @@
                 <td>{{file.nums.n_branches}}</td>
                 <td>{{file.nums.n_partial_branches}}</td>
                 {% endif %}
-                <td class='right'>{{file.nums.pc_covered_str}}%</td>
+                <td class='right' data-ratio='{{file.nums.ratio_covered|pair}}'>{{file.nums.pc_covered_str}}%</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <p id="no_rows">
+        No items found using the specified filter.
+    </p>
 </div>
 
 <div id='footer'>

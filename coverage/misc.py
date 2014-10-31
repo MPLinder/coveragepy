@@ -55,7 +55,7 @@ def format_lines(statements, lines):
     return ret
 
 
-def short_stack():
+def short_stack():                                          # pragma: debugging
     """Return a string summarizing the call stack."""
     stack = inspect.stack()[:0:-1]
     return "\n".join("%30s : %s @%d" % (t[3],t[1],t[2]) for t in stack)
@@ -130,9 +130,9 @@ class Hasher(object):
                 self.update(k)
                 self.update(a)
 
-    def digest(self):
-        """Retrieve the digest of the hash."""
-        return self.md5.digest()
+    def hexdigest(self):
+        """Retrieve the hex digest of the hash."""
+        return self.md5.hexdigest()
 
 
 class CoverageException(Exception):
