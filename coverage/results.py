@@ -196,6 +196,7 @@ class Numbers(object):
         return [
             self.n_files, self.n_statements, self.n_excluded, self.n_missing,
             self.n_branches, self.n_partial_branches, self.n_missing_branches,
+            self.calling_tests
         ]
 
     @classmethod
