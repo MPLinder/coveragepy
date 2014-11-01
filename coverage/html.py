@@ -56,9 +56,11 @@ class HtmlReporter(Reporter):
             ("jquery.hotkeys.js", "jquery-hotkeys"),
             ("jquery.isonscreen.js", "jquery-isonscreen"),
             ("jquery.tablesorter.min.js", "jquery-tablesorter"),
+            ("jquery.qtip-1.0.0-rc3.min.js", "jquery-qtip"),
             ("coverage_html.js", ""),
             ("keybd_closed.png", ""),
             ("keybd_open.png", ""),
+            ("page.png", ""),
             ]
 
     def __init__(self, cov, config):

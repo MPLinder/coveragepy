@@ -13,6 +13,7 @@
     <script type='text/javascript' src='jquery.min.js'></script>
     <script type='text/javascript' src='jquery.hotkeys.js'></script>
     <script type='text/javascript' src='jquery.isonscreen.js'></script>
+    <script type='text/javascript' src='jquery.qtip-1.0.0-rc3.min.js'></script>
     <script type='text/javascript' src='coverage_html.js'></script>
     <script type='text/javascript' charset='utf-8'>
         jQuery(document).ready(coverage.pyfile_ready);
@@ -71,15 +72,17 @@
             </td>
             <td class='text' valign='top'>
                 {% for line in lines %}
-                    <p id='t{{line.number}}' class='{{line.class}}'>{% if line.annotate %}<span class='annotate' title='{{line.annotate_title}}'>{{line.annotate}}</span>{% endif %}{{line.html}}<span class='strut'>&nbsp;</span></p>
+                    <div>
+                        <p id='t{{line.number}}' class='{{line.class}}'>{% if line.annotate %}<span class='annotate' title='{{line.annotate_title}}'>{{line.annotate}}</span>{% endif %}{{line.html}}<span class='strut'>&nbsp;</span></p>
 
-                    {% if line.callers_html_list %}
-                        <div class="caller_data">
-                            {% for callers_html in line.callers_html_list %}
-                                <p>{{callers_html}}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                        {% if line.callers_html_list %}
+                            <div class="caller_data">
+                                {% for callers_html in line.callers_html_list %}
+                                    <p>{{callers_html}}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
                 {% endfor %}
             </td>
         </tr>

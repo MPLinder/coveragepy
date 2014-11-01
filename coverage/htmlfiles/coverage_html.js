@@ -128,8 +128,13 @@ coverage.pyfile_ready = function ($) {
     $(".button_toggle_par").click(function (evt) {coverage.toggle_lines(evt.target, "par");});
 
     $(".caller_data").toggle();
-    $(".text .has_callers").append("(click to see callers)").click(function () {
-        $(".caller_data").slideToggle();
+    $(".text .has_callers").append("<img class='page_icon' src='page.png'>");
+    $(".page_icon").each(function () {
+        $(this).qtip({
+            content: $(this).parent().siblings(".caller_data"),
+            show: 'mouseover',
+            hide: 'mouseout'
+        });
     });
 
     coverage.assign_shortkeys();
