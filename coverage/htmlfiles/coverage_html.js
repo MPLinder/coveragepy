@@ -133,7 +133,10 @@ coverage.pyfile_ready = function ($) {
         $(this).qtip({
             content: $(this).parent().siblings(".caller_data"),
             show: 'mouseover',
-            hide: 'mouseout'
+            hide: {
+                delay:500, //give a small delay to allow the user to mouse over it.
+                fixed:true
+            }
         });
     });
 
