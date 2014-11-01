@@ -114,7 +114,7 @@ def same_python_executable(e1, e2):
     e2 = os.path.abspath(os.path.realpath(e2))
 
     if os.path.dirname(e1) != os.path.dirname(e2):
-        return False                                    # pragma: only failure
+        return False
 
     e1 = os.path.basename(e1)
     e2 = os.path.basename(e2)
@@ -126,4 +126,4 @@ def same_python_executable(e1, e2):
         # python2.3 and python2.3: ok
         return True
 
-    return False                                        # pragma: only failure
+    return False

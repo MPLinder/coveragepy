@@ -30,7 +30,7 @@ class SummaryReporter(Reporter):
         header = (fmt_name % "Name") + " Stmts   Miss"
         fmt_coverage = fmt_name + "%6d %6d"
         if self.branches:
-            header += " Branch BrPart"
+            header += " Branch BrMiss"
             fmt_coverage += " %6d %6d"
         if self.callers:
             header += " Callers"
@@ -60,7 +60,7 @@ class SummaryReporter(Reporter):
                 nums = analysis.numbers
                 args = (cu.name, nums.n_statements, nums.n_missing)
                 if self.branches:
-                    args += (nums.n_branches, nums.n_partial_branches)
+                    args += (nums.n_branches, nums.n_missing_branches)
                 if self.callers:
                     args += (nums.n_callers,)
                 args += (nums.pc_covered_str,)
@@ -90,7 +90,7 @@ class SummaryReporter(Reporter):
             outfile.write(rule)
             args = ("TOTAL", total.n_statements, total.n_missing)
             if self.branches:
-                args += (total.n_branches, total.n_partial_branches)
+                args += (total.n_branches, total.n_missing_branches)
             if self.callers:
                 args += (total.n_callers,)
             args += (total.pc_covered_str,)

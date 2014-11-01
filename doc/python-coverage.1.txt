@@ -8,7 +8,7 @@ measure code coverage of Python program execution
 
 :Author: Ned Batchelder <ned@nedbatchelder.com>
 :Author: |author|
-:Date: 2014-09-27
+:Date: 2013-10-10
 :Copyright: BSD license, attribution and disclaimer required.
 :Manual section: 1
 :Manual group: Coverage
@@ -159,10 +159,6 @@ COMMAND REFERENCE
 
     \--branch
         Measure branch coverage in addition to statement coverage.
-
-    \--concurrency `LIB`
-        Properly measure code using a concurrency library. Valid values are:
-        thread, gevent, greenlet, eventlet.
 
     \--debug `DEBUGOPT`,...
         Debug options `DEBUGOPT`, separated by commas.

@@ -8,7 +8,8 @@ from coverage.backward import StringIO, import_local_file
 from coverage.backward import importlib     # pylint: disable=unused-import
 from coverage.control import _TEST_NAME_FILE
 from coverage.test_helpers import (
-    EnvironmentAwareMixin, StdStreamCapturingMixin, TempDirMixin,
+    ModuleAwareMixin, SysPathAwareMixin, EnvironmentAwareMixin,
+    StdStreamCapturingMixin, TempDirMixin,
 )
 
 from tests.backtest import run_command
@@ -18,6 +19,8 @@ from tests.backtest import run_command
 OK, ERR = 0, 1
 
 class CoverageTest(
+    ModuleAwareMixin,
+    SysPathAwareMixin,
     EnvironmentAwareMixin,
     StdStreamCapturingMixin,
     TempDirMixin,
@@ -34,11 +37,10 @@ class CoverageTest(
     def setUp(self):
         super(CoverageTest, self).setUp()
 
-        if _TEST_NAME_FILE:                                 # pragma: debugging
-            with open(_TEST_NAME_FILE, "w") as f:
-                f.write("%s_%s" % (
-                    self.__class__.__name__, self._testMethodName,
-                ))
+        if _TEST_NAME_FILE:
+            f = open(_TEST_NAME_FILE, "w")
+            f.write("%s_%s" % (self.__class__.__name__, self._testMethodName))
+            f.close()
 
     def clean_local_file_imports(self):
         """Clean up the results of calls to `import_local_file`.

@@ -148,7 +148,7 @@ def import_local_file(modname):
     if SourceFileLoader:
         mod = SourceFileLoader(modname, modfile).load_module()
     else:
-        for suff in imp.get_suffixes():                 # pragma: part covered
+        for suff in imp.get_suffixes():
             if suff[0] == '.py':
                 break
 

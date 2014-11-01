@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html PUBLIC "-//W3C//DTD html 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
     <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
@@ -14,26 +14,23 @@
     <script type='text/javascript' src='jquery.hotkeys.js'></script>
     <script type='text/javascript' src='jquery.isonscreen.js'></script>
     <script type='text/javascript' src='coverage_html.js'></script>
-    <script type='text/javascript'>
+    <script type='text/javascript' charset='utf-8'>
         jQuery(document).ready(coverage.pyfile_ready);
     </script>
 </head>
-<body class='pyfile'>
+<body id='pyfile'>
 
 <div id='header'>
     <div class='content'>
         <h1>Coverage for <b>{{cu.name|escape}}</b> :
             <span class='pc_cov'>{{nums.pc_covered_str}}%</span>
         </h1>
-
-        <img id='keyboard_icon' src='keybd_closed.png' alt='Show keyboard shortcuts' />
-
+        <img id='keyboard_icon' src='keybd_closed.png'>
         <h2 class='stats'>
             {{nums.n_statements}} statements &nbsp;
             <span class='{{c_run}} shortkey_r button_toggle_run'>{{nums.n_executed}} run</span>
             <span class='{{c_mis}} shortkey_m button_toggle_mis'>{{nums.n_missing}} missing</span>
             <span class='{{c_exc}} shortkey_x button_toggle_exc'>{{nums.n_excluded}} excluded</span>
-
             {% if arcs %}
                 <span class='{{c_par}} shortkey_p button_toggle_par'>{{nums.n_partial_branches}} partial</span>
             {% endif %}
@@ -42,7 +39,7 @@
 </div>
 
 <div class='help_panel'>
-    <img id='panel_icon' src='keybd_open.png' alt='Hide keyboard shortcuts' />
+    <img id='panel_icon' src='keybd_open.png'>
     <p class='legend'>Hot-keys on this page</p>
     <div>
     <p class='keyhelp'>
@@ -65,14 +62,14 @@
 </div>
 
 <div id='source'>
-    <table>
+    <table cellspacing='0' cellpadding='0'>
         <tr>
-            <td class='linenos'>
+            <td class='linenos' valign='top'>
                 {% for line in lines %}
                     <p id='n{{line.number}}' class='{{line.class}}'><a href='#n{{line.number}}'>{{line.number}}</a></p>
                 {% endfor %}
             </td>
-            <td class='text'>
+            <td class='text' valign='top'>
                 {% for line in lines %}
                     <p id='t{{line.number}}' class='{{line.class}}'>{% if line.annotate %}<span class='annotate' title='{{line.annotate_title}}'>{{line.annotate}}</span>{% endif %}{{line.html}}<span class='strut'>&nbsp;</span></p>
 

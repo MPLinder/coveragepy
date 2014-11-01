@@ -22,8 +22,7 @@ contains("html_b_branch/b.html",
     )
 contains("html_b_branch/index.html",
     "<a href='b.html'>b</a>",
-    "<span class='pc_cov'>70%</span>",
-    "<td class='right' data-ratio='16 23'>70%</td>",
+    "<span class='pc_cov'>70%</span>"
     )
 
 clean("html_b_branch")

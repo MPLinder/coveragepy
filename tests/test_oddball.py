@@ -173,7 +173,7 @@ class MemoryLeakTest(CoverageTest):
             if ram_growth > 100000:
                 fails += 1
 
-        if fails > 8:                                   # pragma: only failure
+        if fails > 8:
             self.fail("RAM grew by %d" % (ram_growth))
 
 

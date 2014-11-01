@@ -38,7 +38,7 @@ class PyTracer(object):
         # The threading module to use, if any.
         self.threading = None
 
-        self.file_tracer = []
+        self.plugin = []
         self.cur_file_dict = []
         self.cur_file_callers_dict = {}
         self.last_line = [0]
@@ -92,7 +92,7 @@ class PyTracer(object):
                 if self.arcs and self.cur_file_dict:
                     pair = (self.last_line, -self.last_exc_firstlineno)
                     self.cur_file_dict[pair] = None
-                self.file_tracer, self.cur_file_dict, self.cur_file_callers_dict, self.last_line = (
+                self.plugin, self.cur_file_dict, self.cur_file_callers_dict, self.last_line = (
                     self.data_stack.pop()
                 )
             self.last_exc_back = None
@@ -103,7 +103,7 @@ class PyTracer(object):
             # Entering a new function context.  Decide if we should trace
             # in this file.
             self.data_stack.append(
-                (self.file_tracer, self.cur_file_dict, self.cur_file_callers_dict, self.last_line)
+                (self.plugin, self.cur_file_dict, self.cur_file_callers_dict, self.last_line)
             )
             filename = frame.f_code.co_filename
             disp = self.should_trace_cache.get(filename)
@@ -111,15 +111,15 @@ class PyTracer(object):
                 disp = self.should_trace(filename, frame)
                 self.should_trace_cache[filename] = disp
 
-            self.file_tracer = None
+            self.plugin = None
             self.cur_file_dict = None
             self.cur_file_callers_dict = None
             if disp.trace:
                 tracename = disp.source_filename
                 if DO_PRINT:
                     log("%s: %s - frame: <%s>" % (event, tracename, self._format_call(frame)))
-                if disp.file_tracer:
-                    dyn_func = disp.file_tracer.dynamic_source_file_name()
+                if disp.plugin:
+                    dyn_func = disp.plugin.dynamic_source_file_name()
                     if dyn_func:
                         tracename = dyn_func(tracename, frame)
                         if tracename:
@@ -130,13 +130,13 @@ class PyTracer(object):
             if tracename:
                 if tracename not in self.data:
                     self.data[tracename] = {}
-                    if disp.file_tracer:
-                        self.plugin_data[tracename] = disp.file_tracer.plugin_name
+                    if disp.plugin:
+                        self.plugin_data[tracename] = disp.plugin.__name__
                 if tracename not in self.callers_data:
                     self.callers_data[tracename] = {}
                 self.cur_file_dict = self.data[tracename]
                 self.cur_file_callers_dict = self.callers_data[tracename]
-                self.file_tracer = disp.file_tracer
+                self.plugin = disp.plugin
 
                 if self.should_record_callers:
                     f_info = self.test_finder.get_frame_info(frame)
@@ -144,14 +144,14 @@ class PyTracer(object):
                         if DO_PRINT:
                             log("\nCALL push: %r\n" % (frame.f_code,))
                         self.callers_stack.append((frame.f_code, f_info))
-                        
+
             # Set the last_line to -1 because the next arc will be entering a
             # code block, indicated by (-1, n).
             self.last_line = -1
         elif event == 'line':
             # Record an executed line.
-            if self.file_tracer:
-                lineno_from, lineno_to = self.file_tracer.line_number_range(frame)
+            if self.plugin:
+                lineno_from, lineno_to = self.plugin.line_number_range(frame)
             else:
                 lineno_from, lineno_to = frame.f_lineno, frame.f_lineno
             if lineno_from != -1:

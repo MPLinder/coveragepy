@@ -66,8 +66,7 @@ class RunFileTest(CoverageTest):
                 a = 1
                 print("a is %r" % a)
                 #""")
-        with open("abrupt.py") as f:
-            abrupt = f.read()
+        abrupt = open("abrupt.py").read()
         self.assertEqual(abrupt[-1], '#')
         run_python_file("abrupt.py", ["abrupt.py"])
         self.assertEqual(self.stdout(), "a is 1\n")
@@ -92,9 +91,9 @@ class RunPycFileTest(CoverageTest):
         os.remove("compiled.py")
 
         # Find the .pyc file!
-        for there, _, files in os.walk("."):            # pragma: part covered
+        for there, _, files in os.walk("."):
             for f in files:
-                if f.endswith(".pyc"):                  # pragma: part covered
+                if f.endswith(".pyc"):
                     return os.path.join(there, f)
 
     def test_running_pyc(self):
@@ -114,9 +113,10 @@ class RunPycFileTest(CoverageTest):
         pycfile = self.make_pyc()
 
         # Jam Python 2.1 magic number into the .pyc file.
-        with open(pycfile, "r+b") as fpyc:
-            fpyc.seek(0)
-            fpyc.write(binary_bytes([0x2a, 0xeb, 0x0d, 0x0a]))
+        fpyc = open(pycfile, "r+b")
+        fpyc.seek(0)
+        fpyc.write(binary_bytes([0x2a, 0xeb, 0x0d, 0x0a]))
+        fpyc.close()
 
         with self.assertRaisesRegex(NoCode, "Bad magic number in .pyc file"):
             run_python_file(pycfile, [pycfile])

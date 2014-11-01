@@ -48,7 +48,6 @@ class FarmTestCase(object):
         self.dir, self.runpy = os.path.split(runpy)
         self.clean_only = clean_only
         self.dont_clean = dont_clean
-        self.ok = True
 
     def cd(self, newdir):
         """Change the current directory, and return the old one."""
@@ -71,9 +70,10 @@ class FarmTestCase(object):
         """Execute the test from the run.py file.
 
         """
-        if _TEST_NAME_FILE:                                 # pragma: debugging
-            with open(_TEST_NAME_FILE, "w") as f:
-                f.write(self.description.replace("/", "_"))
+        if _TEST_NAME_FILE:
+            f = open(_TEST_NAME_FILE, "w")
+            f.write(self.description.replace("/", "_"))
+            f.close()
 
         cwd = self.cd(self.dir)
 
@@ -93,9 +93,6 @@ class FarmTestCase(object):
         old_mods = dict(sys.modules)
         try:
             execfile(self.runpy, glo)
-        except Exception:
-            self.ok = False
-            raise
         finally:
             self.cd(cwd)
             # Remove any new modules imported during the test run. This lets us
@@ -133,9 +130,8 @@ class FarmTestCase(object):
 
     def tearDown(self):
         """Test tear down, run by nose after __call__."""
-        # Make sure the test is cleaned up, unless we never want to, or if the
-        # test failed.
-        if not self.dont_clean and self.ok:         # pragma: part covered
+        # Make sure no matter what, the test is cleaned up.
+        if not self.dont_clean:         # pragma: part covered
             self.clean_only = True
             self()
 
@@ -241,7 +237,6 @@ class FarmTestCase(object):
         diff_files = self.fnmatch_list(dc.diff_files, file_pattern)
         left_only = self.fnmatch_list(dc.left_only, file_pattern)
         right_only = self.fnmatch_list(dc.right_only, file_pattern)
-        show_diff = True
 
         if size_within:
             # The files were already compared, use the diff_files list as a
@@ -257,16 +252,12 @@ class FarmTestCase(object):
                 if (big - little) / float(little) > size_within/100.0:
                     # print "%d %d" % (big, little)
                     # print "Left: ---\n%s\n-----\n%s" % (left, right)
-                    wrong_size.append("%s (%s,%s)" % (f, size_l, size_r))
-            if wrong_size:
-                print("File sizes differ between %s and %s: %s" % (
-                    dir1, dir2, ", ".join(wrong_size)
+                    wrong_size.append(f)
+            assert not wrong_size, (
+                "File sizes differ between %s and %s: %s" % (
+                    dir1, dir2, wrong_size
                 ))
-
-            # We'll show the diff iff the files differed enough in size.
-            show_diff = bool(wrong_size)
-
-        if show_diff:
+        else:
             # filecmp only compares in binary mode, but we want text mode.  So
             # look through the list of different files, and compare them
             # ourselves.
@@ -370,9 +361,9 @@ def main():     # pragma: not covered
 
     Commands:
 
-    run testcase ...    - Run specific test case(s)
-    out testcase ...    - Run test cases, but don't clean up, leaving output.
-    clean               - Clean all the output for all tests.
+    run testcase    - Run a single test case.
+    out testcase    - Run a test case, but don't clean up, to see the output.
+    clean           - Clean all the output for all tests.
 
     """
     op = 'help'
@@ -383,14 +374,12 @@ def main():     # pragma: not covered
 
     if op == 'run':
         # Run the test for real.
-        for test_case in sys.argv[2:]:
-            case = FarmTestCase(test_case)
-            case.run_fully()
+        case = FarmTestCase(sys.argv[2])
+        case.run_fully()
     elif op == 'out':
         # Run the test, but don't clean up, so we can examine the output.
-        for test_case in sys.argv[2:]:
-            case = FarmTestCase(test_case, dont_clean=True)
-            case.run_fully()
+        case = FarmTestCase(sys.argv[2], dont_clean=True)
+        case.run_fully()
     elif op == 'clean':
         # Run all the tests, but just clean.
         for test in test_farm(clean_only=True):

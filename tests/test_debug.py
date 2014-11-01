@@ -47,8 +47,7 @@ class DebugTraceTest(CoverageTest):
             """)
 
         debug_out = StringIO()
-        cov = coverage.coverage(debug=debug)
-        cov._debug_file = debug_out
+        cov = coverage.coverage(debug=debug, debug_file=debug_out)
         self.start_import_stop(cov, "f1")
 
         out_lines = debug_out.getvalue().splitlines()
@@ -108,11 +107,7 @@ class DebugTraceTest(CoverageTest):
             """.split()
         for label in labels:
             label_pat = r"^\s*%s: " % label
-            self.assertEqual(
-                len(lines_matching(out_lines, label_pat)),
-                1,
-                msg="Incorrect lines for %r" % label,
-            )
+            self.assertEqual(len(lines_matching(out_lines, label_pat)), 1)
 
 
 def lines_matching(lines, pat):
