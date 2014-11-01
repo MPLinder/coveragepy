@@ -262,8 +262,9 @@ class Numbers(object):
         nums.n_missing_branches = (
             self.n_missing_branches + other.n_missing_branches
             )
+        other_calling_tests = getattr(other, "calling_tests", set())  # TODO: Not sure why this is necessary?!
         nums.calling_tests = (
-            self.calling_tests.union(other.calling_tests)
+            self.calling_tests.union(other_calling_tests)
         )
         return nums
 
