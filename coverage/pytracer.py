@@ -213,7 +213,7 @@ class PyTracer(object):
                 first = frame.f_code.co_firstlineno
                 self.cur_file_dict[(self.last_line, -first)] = None
             # Leaving this function, pop the filename stack.
-            self.file_tracer, self.cur_file_dict, self.cur_file_callers_dict, self.last_line = (
+            self.plugin, self.cur_file_dict, self.cur_file_callers_dict, self.last_line = (
                 self.data_stack.pop()
             )
 
