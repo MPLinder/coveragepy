@@ -136,6 +136,11 @@ coverage.pyfile_ready = function ($) {
             hide: {
                 delay:500, //give a small delay to allow the user to mouse over it.
                 fixed:true
+            },
+            style: { width: {
+                        min: 250,
+                        max: 1200
+                     }
             }
         });
     });
