@@ -228,9 +228,8 @@ class HtmlReporter(Reporter):
             callers = analysis.callers_data.get(lineno)
             if callers:
                 line_class.append("has_callers")
-
                 callers_html_list = []
-                for caller in callers.test_methods:
+                for caller in sorted(callers.test_methods):
                     html_filename = caller.filename.replace(".py", ".html").replace("/", "_")
                     content = caller.function_name + " in " + caller.filename + " line " + str(caller.line_no)
                     caller_html = "<a href=" + html_filename + "#n" + str(caller.line_no) + ">" + content + "</a>"
