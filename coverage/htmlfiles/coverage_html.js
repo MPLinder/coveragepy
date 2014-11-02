@@ -127,7 +127,7 @@ coverage.pyfile_ready = function ($) {
     $(".button_toggle_mis").click(function (evt) {coverage.toggle_lines(evt.target, "mis");});
     $(".button_toggle_par").click(function (evt) {coverage.toggle_lines(evt.target, "par");});
 
-    $(".caller_data").toggle();
+    $(".caller_data").hide();
     $(".text .has_callers").append("<img class='page_icon' src='page.png'>");
     $(".page_icon").each(function () {
         $(this).qtip({
