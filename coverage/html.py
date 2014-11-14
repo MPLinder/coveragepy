@@ -228,13 +228,12 @@ class HtmlReporter(Reporter):
             callers = analysis.callers_data.get(lineno)
             if callers:
                 line_class.append("has_callers")
-                callers_html_list = []
                 for caller in sorted(callers.test_methods.keys()):
                     caller_count = callers.test_methods[caller]
-                    html_filename = caller.filename.replace(".py", ".html").replace("/", "_")
-                    content = caller.function_name + " in " + caller.filename + " line " + str(caller.line_no)
-                    caller_html = "<a href=" + html_filename + "#n" + str(caller.line_no) + ">" + content + \
-                                  " (" + str(caller_count) + ")</a>"
+                    html_filename = self.get_href_for_source_file(caller.filename)
+                    content = caller.function_name + " in " + caller.filename + " line " + str(caller.line_no) + \
+                        " (" + str(caller_count) + ")"
+                    caller_html = "<a href=" + html_filename + "#n" + str(caller.line_no) + ">" + content + "</a>"
                     callers_html_list.append(caller_html)
 
             lines.append({
@@ -270,6 +269,24 @@ class HtmlReporter(Reporter):
             }
         self.files.append(index_info)
         self.status.set_index_info(flat_rootname, index_info)
+
+    def get_href_for_source_file(self, source_filename):
+        # Bad hacks here...
+        found_cu = None
+        for cu in self.code_units:
+            if cu.filename == source_filename:
+                found_cu = cu
+                break
+        if found_cu is not None:
+            # Best case: we found the code unit in our data already.
+            return found_cu.flat_rootname() + ".html"
+        else:
+            # Test seems to live outside our code unit files.
+            # This is almost certainly wrong below.
+            if source_filename[0] == "<":
+                source_filename = source_filename.replace("<", "_").replace(">", "_")
+            source_filename = source_filename.replace(".py", ".html").replace("/", "_")
+            return source_filename
 
     def index_file(self):
         """Write the index.html file for this report."""
