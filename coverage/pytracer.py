@@ -248,22 +248,21 @@ class PyTracer(object):
         if not self.callers_stack or current_frame is None:
             return False
         last_call_f_code, last_call_top_info = self.callers_stack[-1]
-        if current_frame.f_code == last_call_f_code:
-            return True
-        return False
+        return current_frame.f_code == last_call_f_code
 
     def get_callers_mapped_stack(self):
         """
-        Return a set representing the currently excecuting line of each test caller in the test call
+        Return a dict representing the currently executing line of each test caller in the test call
         stack (self.callers_stack).
 
-        :return: a set of FrameInfo objects of currently executing lines of tests in the test stack.
+        :return: a dict where the keys are FrameInfo objects of currently executing lines of tests in the test stack
+        and the values are number of times seen (always 1 here).
         """
-        rv = set()
+        rv = {}
         for caller_info in self.callers_stack:
             caller_line_info = self.callers_line.get(caller_info, None)
             if caller_line_info is not None:
-                rv.add(caller_line_info)
+                rv[caller_line_info] = 1
         return rv
 
     def start(self):

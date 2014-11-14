@@ -191,11 +191,12 @@ class TestFinderResult(object):
     TODO: line_id concept is not used.  Line associated is not kept in the result,
     but rather is a KEY where this object is a VALUE.
 
-    test_methods is a set of FrameInfo's for tests we found.
+    test_methods is a dict where the keys are TestLine's for tests we found, and
+    the value is a count of number of times that TestLine was encountered.
     """
 
     def __init__(self, line_id, test_methods=None):
-        self.test_methods = test_methods or set()
+        self.test_methods = test_methods or {}
         self.line_id = line_id
 
     @nottest
@@ -219,7 +220,12 @@ class TestFinderResult(object):
         into this one, and return the modified instance."""
         # if self.line_id != other_result.line_id:
         #     raise ValueError("Cannot merge results from different line_id's.\nID 1: %s\nID 2: %s\n" % (self.line_id, other_result.line_id))
-        self.test_methods = self.test_methods.union(other_result.test_methods)
+        # self.test_methods = self.test_methods.union(other_result.test_methods)
+
+        for other_test_line, other_test_line_count in iitems(other_result.test_methods):
+            this_test_count = self.test_methods.get(other_test_line, 0)
+            this_test_count += other_test_line_count
+            self.test_methods[other_test_line] = this_test_count
         return self
 
     @staticmethod

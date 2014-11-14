@@ -229,10 +229,12 @@ class HtmlReporter(Reporter):
             if callers:
                 line_class.append("has_callers")
                 callers_html_list = []
-                for caller in sorted(callers.test_methods):
+                for caller in sorted(callers.test_methods.keys()):
+                    caller_count = callers.test_methods[caller]
                     html_filename = caller.filename.replace(".py", ".html").replace("/", "_")
                     content = caller.function_name + " in " + caller.filename + " line " + str(caller.line_no)
-                    caller_html = "<a href=" + html_filename + "#n" + str(caller.line_no) + ">" + content + "</a>"
+                    caller_html = "<a href=" + html_filename + "#n" + str(caller.line_no) + ">" + content + \
+                                  " (" + str(caller_count) + ")</a>"
                     callers_html_list.append(caller_html)
 
             lines.append({
